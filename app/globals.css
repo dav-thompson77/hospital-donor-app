@@ -208,11 +208,8 @@
 }
 
 .impact-network-scene {
-  --impact-tilt-x: 0deg;
-  --impact-tilt-y: 0deg;
-  --impact-spin-duration: 20s;
   position: relative;
-  height: 320px;
+  height: 390px;
   perspective: 900px;
   overflow: hidden;
 }
@@ -221,15 +218,14 @@
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  transform: rotateX(var(--impact-tilt-x)) rotateY(var(--impact-tilt-y));
-  transition: transform 140ms linear;
+  transform: rotateX(3deg) rotateY(-4deg);
 }
 
 .impact-network-rotator {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  animation: networkRotate var(--impact-spin-duration) linear infinite;
+  animation: networkRotate 17s linear infinite;
 }
 
 .impact-orbit {
@@ -250,6 +246,10 @@
 
 .impact-orbit-three {
   transform: translate(-50%, -50%) rotateX(45deg) rotateY(45deg);
+}
+
+.impact-orbit-four {
+  transform: translate(-50%, -50%) rotateX(82deg) rotateY(24deg);
 }
 
 .impact-ring {
@@ -275,10 +275,41 @@
 }
 
 .impact-orbit-three .impact-ring {
-  width: 248px;
-  height: 248px;
+  width: 292px;
+  height: 292px;
   transform: translate(-50%, -50%);
   border: 1px solid hsl(var(--primary) / 0.16);
+}
+
+.impact-orbit-four .impact-ring {
+  width: 356px;
+  height: 356px;
+  transform: translate(-50%, -50%);
+  border: 1px solid hsl(var(--primary) / 0.1);
+}
+
+.impact-link {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 1.5px;
+  transform-origin: left center;
+}
+
+.impact-link-one {
+  background: linear-gradient(to right, hsl(var(--primary) / 0.5), hsl(var(--primary) / 0));
+}
+
+.impact-link-two {
+  background: linear-gradient(to right, hsl(var(--chart-2) / 0.35), hsl(var(--chart-2) / 0));
+}
+
+.impact-link-three {
+  background: linear-gradient(to right, hsl(var(--chart-3) / 0.3), hsl(var(--chart-3) / 0));
+}
+
+.impact-link-four {
+  background: linear-gradient(to right, hsl(var(--chart-4) / 0.24), hsl(var(--chart-4) / 0));
 }
 
 .impact-node {
@@ -301,6 +332,10 @@
 
 .impact-node-three {
   background: hsl(var(--chart-3));
+}
+
+.impact-node-four {
+  background: hsl(var(--chart-4));
 }
 
 .impact-core {
@@ -343,7 +378,6 @@
   }
 
   .impact-network-tilt {
-    transition: none !important;
     transform: none !important;
   }
 
