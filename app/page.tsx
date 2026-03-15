@@ -599,7 +599,7 @@ export default async function Home({
               request, ready to copy and send.
             </p>
             <Badge variant="outline" className="border-primary/30 text-primary">
-              Demo-ready messaging
+              Ready messaging
             </Badge>
           </CardContent>
         </Card>
