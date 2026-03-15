@@ -49,6 +49,27 @@ The above will also clone the Starter kit to your GitHub, you can clone that loc
 
 If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
 
+## Deploy this repo to Vercel (with your Supabase project)
+
+1. Push your code to GitHub (already done in this repository).
+2. In Vercel, click **Add New Project** and import this GitHub repository.
+3. In the Vercel project settings, add these environment variables for Production (and optionally Preview/Development):
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://znmzisdzzkifinjlylco.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_DAj5lxE9Td4QQBS6As_h_w_5riUAxc7
+   ```
+
+4. Click **Deploy**.
+5. After deployment, open your Vercel URL and test authentication flows:
+   - `/auth/sign-up`
+   - `/auth/login`
+   - `/protected`
+
+> [!TIP]
+> For local development, copy `.env.example` to `.env.local`:
+> `cp .env.example .env.local`
+
 ## Clone and run locally
 
 1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
