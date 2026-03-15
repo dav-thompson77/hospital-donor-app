@@ -164,11 +164,12 @@ export default async function StaffDashboardPage() {
                     </p>
                     <StatusBadge status={request.urgency} />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Required by {formatDate(request.required_by)} •{" "}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground"></div>
+                    <span>Required by {formatDate(request.required_by)}</span>
+                    <span>•</span>
                     <StatusBadge status={request.status} />
-                  </p>
-                </div>
+                  </div> 
+               
               ))
             ) : (
               <p className="text-sm text-muted-foreground">
