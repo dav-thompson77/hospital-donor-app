@@ -1,5 +1,6 @@
-import { updateDonorWorkflowAction } from "@/app/actions/staff";
+import { updateDonorBloodTypeAction, updateDonorWorkflowAction } from "@/app/actions/staff";
 import { StatusBadge } from "@/components/status-badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { requireRole } from "@/lib/auth";
 import { BLOOD_TYPES } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { CheckCircle2, TriangleAlert } from "lucide-react";
 
 interface SearchParams {
   blood_type?: string;
@@ -14,6 +16,8 @@ interface SearchParams {
   parish?: string;
   last_donation_before?: string;
   response_status?: string;
+  bloodTypeUpdated?: string;
+  error?: string;
 }
 
 function pickProfile(row: {
@@ -41,6 +45,8 @@ export default async function StaffDonorsPage({
 }) {
   const { supabase } = await requireRole(["blood_bank_staff", "admin"]);
   const filters = await searchParams;
+  const bloodTypeUpdated = filters.bloodTypeUpdated === "1";
+  const errorMessage = filters.error;
 
   let query = supabase
     .from("donor_profiles")
@@ -123,6 +129,22 @@ export default async function StaffDonorsPage({
 
   return (
     <div className="space-y-6">
+      {bloodTypeUpdated ? (
+        <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertTitle>Blood type updated</AlertTitle>
+          <AlertDescription>The donor blood type was saved successfully.</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {errorMessage ? (
+        <Alert variant="destructive">
+          <TriangleAlert className="h-4 w-4" />
+          <AlertTitle>Could not update donor</AlertTitle>
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Donor directory</CardTitle>
@@ -230,6 +252,32 @@ export default async function StaffDonorsPage({
                     {formatDate(donor.next_eligible_donation_date)} | Latest response:{" "}
                     {latestResponse ? `${latestResponse.response_status}` : "none"}
                   </p>
+
+                  <form
+                    action={updateDonorBloodTypeAction}
+                    className="mb-3 flex flex-wrap items-end gap-2 rounded-md border bg-accent/30 p-3"
+                  >
+                    <input type="hidden" name="donor_profile_id" value={donor.profile_id} />
+                    <div className="min-w-[220px] flex-1 space-y-2">
+                      <Label htmlFor={`blood-type-${donor.profile_id}`}>Blood type</Label>
+                      <select
+                        id={`blood-type-${donor.profile_id}`}
+                        name="blood_type"
+                        defaultValue={donor.blood_type ?? ""}
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                      >
+                        <option value="">Unknown / not provided</option>
+                        {BLOOD_TYPES.map((bloodType) => (
+                          <option key={`${donor.profile_id}-${bloodType}`} value={bloodType}>
+                            {bloodType}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <Button type="submit" size="sm">
+                      Save blood type
+                    </Button>
+                  </form>
 
                   <form action={updateDonorWorkflowAction} className="grid gap-3 md:grid-cols-3">
                     <input type="hidden" name="donor_profile_id" value={donor.profile_id} />

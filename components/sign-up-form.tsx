@@ -16,7 +16,7 @@ import { getBrowserAuthCallbackUrl } from "@/lib/site-url";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { UserRole } from "@/lib/types";
+import { BLOOD_TYPES, type UserRole } from "@/lib/types";
 
 export function SignUpForm({
   role = "donor",
@@ -28,6 +28,7 @@ export function SignUpForm({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [donorBloodType, setDonorBloodType] = useState("");
   const [staffIdNumber, setStaffIdNumber] = useState("");
   const [staffFacility, setStaffFacility] = useState("");
   const [staffWorkPhone, setStaffWorkPhone] = useState("");
@@ -71,6 +72,7 @@ export function SignUpForm({
             full_name: fullName,
             role,
             phone: isDonorRole ? phone.trim() : null,
+            donor_blood_type: isDonorRole ? (donorBloodType || null) : null,
             staff_id_number: isStaffRole ? staffIdNumber.trim() : null,
             staff_facility: isStaffRole ? staffFacility.trim() : null,
             staff_work_phone: isStaffRole ? (staffWorkPhone.trim() || null) : null,
@@ -131,17 +133,36 @@ export function SignUpForm({
                 />
               </div>
               {isDonorRole ? (
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Phone number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+1-876-555-0000"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Phone number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+1-876-555-0000"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="donor-blood-type">Blood type (optional)</Label>
+                    <select
+                      id="donor-blood-type"
+                      name="donor_blood_type"
+                      value={donorBloodType}
+                      onChange={(e) => setDonorBloodType(e.target.value)}
+                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                    >
+                      <option value="">I don&apos;t know my blood type yet</option>
+                      {BLOOD_TYPES.map((bloodType) => (
+                        <option key={bloodType} value={bloodType}>
+                          {bloodType}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
               ) : null}
               {isStaffRole ? (
                 <>

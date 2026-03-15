@@ -1,254 +1,225 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildSMSMessages, sendSMS } from "@/lib/sms";
+import { generateOutreachSuggestions } from "@/lib/ai/outreach";
+import type { DonorStatus, UrgencyLevel } from "@/lib/types";
 
-const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const MONITOR_ALERT_COOLDOWN_HOURS = 6;
+const ELIGIBILITY_COOLDOWN_DAYS = 56;
 
-const CRITICAL_THRESHOLD = 3;
-const LOW_THRESHOLD = 8;
-const SAFE_THRESHOLD = 15;
-
-function getTrendMultiplier(): { factor: number; reason: string } {
-  const month = new Date().getMonth() + 1;
-  const day = new Date().getDay();
-
-  if (day === 5 || day === 6) {
-    return {
-      factor: 1.4,
-      reason: "Weekend trauma season — road accident volume elevated",
-    };
-  }
-  if ([12, 1, 2, 6, 7, 8].includes(month)) {
-    return {
-      factor: 1.3,
-      reason: "Peak prenatal admission season — O- and A+ demand elevated",
-    };
-  }
-  if ([9, 10].includes(month)) {
-    return {
-      factor: 1.2,
-      reason: "Elective surgery season — all blood types in higher demand",
-    };
-  }
-
-  return { factor: 1.0, reason: "Normal demand period" };
+interface MonitorRequestRow {
+  id: number;
+  blood_type_needed: string;
+  urgency: UrgencyLevel;
+  required_by: string;
+  center_id: number;
+  note: string | null;
+  blood_centers: { name: string } | Array<{ name: string }> | null;
 }
 
-interface BloodTypeInventory {
+interface MatchedDonorRow {
+  profile_id: string;
+  status: DonorStatus;
+  last_donation_date: string | null;
+  next_eligible_donation_date: string | null;
+  profiles:
+    | { full_name: string | null }
+    | Array<{ full_name: string | null }>
+    | null;
+}
+
+export interface MonitorRunDetail {
+  requestId: number;
   bloodType: string;
-  eligibleDonors: number;
-  recentDonations: number;
-  activeRequests: number;
-  adjustedThreshold: number;
-  isCritical: boolean;
-  isLow: boolean;
-  isSafe: boolean;
-  trendReason: string;
+  urgency: UrgencyLevel;
+  donorsMatched: number;
+  alertsCreated: number;
+  deduped: number;
 }
 
-export async function analyzeInventory(
-  supabase: SupabaseClient
-): Promise<BloodTypeInventory[]> {
-  const trend = getTrendMultiplier();
-  const results: BloodTypeInventory[] = [];
+export interface MonitorRunResult {
+  processedRequests: number;
+  alertsCreated: number;
+  donorsMatched: number;
+  deduped: number;
+  details: MonitorRunDetail[];
+}
 
-  for (const bloodType of BLOOD_TYPES) {
-    const { count: eligibleDonors } = await supabase
-      .from("donor_profiles")
-      .select("profile_id", { count: "exact", head: true })
-      .eq("blood_type", bloodType)
-      .in("status", ["approved", "eligible_again"])
-      .lte(
-        "next_eligible_donation_date",
-        new Date().toISOString().split("T")[0]
-      );
+interface MonitorRunInput {
+  sentByProfileId: string;
+  requestId?: number;
+}
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+function pickCentreName(centre: MonitorRequestRow["blood_centers"]) {
+  if (!centre) return "Donation Centre";
+  if (Array.isArray(centre)) return centre[0]?.name ?? "Donation Centre";
+  return centre.name ?? "Donation Centre";
+}
 
-    const { count: recentDonations } = await supabase
-      .from("donation_history")
-      .select("id", { count: "exact", head: true })
-      .eq("blood_type", bloodType)
-      .gte("donated_at", thirtyDaysAgo.toISOString());
+function pickDonorName(profileJoin: MatchedDonorRow["profiles"]) {
+  if (!profileJoin) return "donor";
+  if (Array.isArray(profileJoin)) return profileJoin[0]?.full_name ?? "donor";
+  return profileJoin.full_name ?? "donor";
+}
 
-    const { count: activeRequests } = await supabase
-      .from("blood_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("blood_type_needed", bloodType)
-      .eq("status", "active");
+function addDays(dateValue: string, days: number) {
+  const base = new Date(dateValue);
+  if (Number.isNaN(base.getTime())) {
+    return null;
+  }
+  base.setUTCDate(base.getUTCDate() + days);
+  return base;
+}
 
-    const donors = eligibleDonors ?? 0;
-    const donations = recentDonations ?? 0;
-    const requests = activeRequests ?? 0;
-
-    const adjustedThreshold = Math.ceil(
-      (CRITICAL_THRESHOLD + requests) * trend.factor
-    );
-
-    results.push({
-      bloodType,
-      eligibleDonors: donors,
-      recentDonations: donations,
-      activeRequests: requests,
-      adjustedThreshold,
-      isCritical: donors <= adjustedThreshold,
-      isLow:
-        donors > adjustedThreshold &&
-        donors <= Math.ceil(LOW_THRESHOLD * trend.factor),
-      isSafe: donors > Math.ceil(SAFE_THRESHOLD * trend.factor),
-      trendReason: trend.reason,
-    });
+function isDonorEligible(donor: Pick<MatchedDonorRow, "last_donation_date" | "next_eligible_donation_date">) {
+  const now = new Date();
+  if (donor.next_eligible_donation_date) {
+    const nextEligible = new Date(donor.next_eligible_donation_date);
+    if (!Number.isNaN(nextEligible.getTime()) && nextEligible > now) {
+      return false;
+    }
   }
 
-  return results;
+  if (donor.last_donation_date) {
+    const eligibleAt = addDays(donor.last_donation_date, ELIGIBILITY_COOLDOWN_DAYS);
+    if (eligibleAt && eligibleAt > now) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export async function runAIMonitor(
   supabase: SupabaseClient,
-  staffProfileId: string
-) {
-  // Step 1 — Restore donors whose 56-day window has passed BEFORE analyzing
-  await supabase
-    .from("donor_profiles")
-    .update({ status: "eligible_again" })
-    .eq("status", "temporarily_deferred")
-    .lte(
-      "next_eligible_donation_date",
-      new Date().toISOString().split("T")[0]
-    );
+  input: MonitorRunInput,
+): Promise<MonitorRunResult> {
+  const requestQuery = supabase
+    .from("blood_requests")
+    .select("id, blood_type_needed, urgency, required_by, center_id, note, blood_centers(name)")
+    .eq("status", "active")
+    .eq("urgency", "critical")
+    .order("required_by", { ascending: true });
 
-  // Step 2 — Analyze inventory with updated statuses
-  const inventory = await analyzeInventory(supabase);
-  const criticalTypes = inventory.filter((i) => i.isCritical);
+  const { data: requests, error: requestsError } = input.requestId
+    ? await requestQuery.eq("id", input.requestId)
+    : await requestQuery.limit(10);
 
-  if (!criticalTypes.length) {
-    return { triggered: 0, message: "All blood types within safe thresholds" };
+  if (requestsError) {
+    throw requestsError;
   }
 
-  let triggered = 0;
+  const requestRows = (requests ?? []) as MonitorRequestRow[];
+  const cooldownSince = new Date(Date.now() - MONITOR_ALERT_COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
 
-  for (const item of criticalTypes) {
-    // Skip if we already sent an alert for this blood type in the last 12 hours
-    const twelveHoursAgo = new Date();
-    twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
+  const result: MonitorRunResult = {
+    processedRequests: 0,
+    alertsCreated: 0,
+    donorsMatched: 0,
+    deduped: 0,
+    details: [],
+  };
 
-    const { count: recentAlerts } = await supabase
-      .from("blood_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("blood_type_needed", item.bloodType)
-      .eq("status", "active")
-      .gte("created_at", twelveHoursAgo.toISOString());
+  for (const request of requestRows) {
+    result.processedRequests += 1;
 
-    if ((recentAlerts ?? 0) > 0) continue;
-
-    // Get the primary active centre
-    const { data: centre } = await supabase
-      .from("blood_centers")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("id")
-      .limit(1)
-      .single();
-
-    if (!centre) continue;
-
-    const requiredBy = new Date();
-    requiredBy.setDate(requiredBy.getDate() + 2);
-    const requiredByStr = requiredBy.toISOString().split("T")[0];
-
-    const urgency = item.eligibleDonors === 0 ? "critical" : "high";
-
-    // Auto-create the blood request
-    const { data: request } = await supabase
-      .from("blood_requests")
-      .insert({
-        created_by_profile_id: staffProfileId,
-        blood_type_needed: item.bloodType,
-        urgency,
-        center_id: centre.id,
-        required_by: requiredByStr,
-        note: `AI-detected shortage. ${item.trendReason}. Only ${item.eligibleDonors} eligible donor(s) currently available.`,
-        ai_message_suggestions: [],
-        status: "active",
-      })
-      .select("id")
-      .single();
-
-    if (!request) continue;
-
-    // Find all matching eligible donors
-    const { data: matchingDonors } = await supabase
+    const { data: donors, error: donorsError } = await supabase
       .from("donor_profiles")
       .select(
-        "profile_id, status, last_donation_date, profiles!inner(full_name, phone)"
+        "profile_id, status, last_donation_date, next_eligible_donation_date, profiles!inner(full_name)",
       )
-      .eq("blood_type", item.bloodType)
-      .in("status", ["approved", "eligible_again"])
-      .limit(50);
+      .eq("blood_type", request.blood_type_needed)
+      .in("status", ["approved", "eligible_again"]);
 
-    if (!matchingDonors?.length) continue;
+    if (donorsError) {
+      throw donorsError;
+    }
 
-    for (const donor of matchingDonors) {
-      const profileData = Array.isArray(donor.profiles)
-        ? donor.profiles[0]
-        : donor.profiles;
-      const donorProfile = profileData as {
-        full_name: string;
-        phone: string | null;
-      } | null;
+    const eligibleDonors = ((donors ?? []) as MatchedDonorRow[]).filter((donor) =>
+      isDonorEligible(donor),
+    );
 
-      const donorName = donorProfile?.full_name ?? "donor";
-      const phone = donorProfile?.phone ?? null;
+    result.donorsMatched += eligibleDonors.length;
 
-      const messages = buildSMSMessages({
-        donorName,
-        bloodType: item.bloodType,
-        centreName: centre.name,
-        requiredBy: requiredByStr,
+    const { data: recentAlerts, error: recentAlertsError } = await supabase
+      .from("donor_alerts")
+      .select("donor_profile_id")
+      .eq("blood_request_id", request.id)
+      .gte("created_at", cooldownSince);
+
+    if (recentAlertsError) {
+      throw recentAlertsError;
+    }
+
+    const recentlyAlerted = new Set((recentAlerts ?? []).map((row) => row.donor_profile_id));
+    const detail: MonitorRunDetail = {
+      requestId: request.id,
+      bloodType: request.blood_type_needed,
+      urgency: request.urgency,
+      donorsMatched: eligibleDonors.length,
+      alertsCreated: 0,
+      deduped: 0,
+    };
+
+    for (const donor of eligibleDonors) {
+      if (recentlyAlerted.has(donor.profile_id)) {
+        detail.deduped += 1;
+        result.deduped += 1;
+        continue;
+      }
+
+      const suggestions = generateOutreachSuggestions({
+        donorName: pickDonorName(donor.profiles),
+        bloodType: request.blood_type_needed,
+        urgency: request.urgency,
+        requiredBy: request.required_by,
         donorStatus: donor.status,
         lastDonationDate: donor.last_donation_date,
-        staffNote: item.trendReason,
+        centreName: pickCentreName(request.blood_centers),
+        customNote: request.note,
       });
 
-      // Create in-app alert
-      const { data: alert } = await supabase
+      const alertMessage =
+        suggestions[0] ??
+        `Urgent ${request.blood_type_needed} donation request at ${pickCentreName(request.blood_centers)}.`;
+
+      const { data: alert, error: alertError } = await supabase
         .from("donor_alerts")
         .insert({
           blood_request_id: request.id,
           donor_profile_id: donor.profile_id,
-          sent_by_profile_id: staffProfileId,
-          message: messages.urgent,
+          sent_by_profile_id: input.sentByProfileId,
+          message: alertMessage,
         })
         .select("id")
         .single();
 
-      if (alert) {
-        await supabase.from("donor_alert_responses").upsert(
-          {
-            alert_id: alert.id,
-            donor_profile_id: donor.profile_id,
-            response_status: "pending",
-          },
-          { onConflict: "alert_id,donor_profile_id" }
-        );
-
-        await supabase.from("notifications").insert({
-          recipient_profile_id: donor.profile_id,
-          source_type: "alert",
-          source_id: alert.id,
-          title: `AI Alert: Urgent ${item.bloodType} blood needed`,
-          body: messages.urgent,
-        });
-
-        // Send SMS if phone number exists
-        if (phone) {
-          await sendSMS(phone, messages.urgent);
-        }
+      if (alertError || !alert) {
+        continue;
       }
+
+      await supabase.from("donor_alert_responses").upsert(
+        {
+          alert_id: alert.id,
+          donor_profile_id: donor.profile_id,
+          response_status: "pending",
+        },
+        { onConflict: "alert_id,donor_profile_id" },
+      );
+
+      await supabase.from("notifications").insert({
+        recipient_profile_id: donor.profile_id,
+        source_type: "alert",
+        source_id: alert.id,
+        title: "Critical blood request alert",
+        body: alertMessage,
+      });
+
+      recentlyAlerted.add(donor.profile_id);
+      detail.alertsCreated += 1;
+      result.alertsCreated += 1;
     }
 
-    triggered++;
+    result.details.push(detail);
   }
 
-  return { triggered, criticalTypes };
+  return result;
 }

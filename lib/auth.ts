@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Profile, UserRole } from "@/lib/types";
+import { BLOOD_TYPES, type Profile, type UserRole } from "@/lib/types";
 
 const VALID_ROLES: UserRole[] = ["donor", "blood_bank_staff", "admin"];
 
@@ -11,6 +11,17 @@ function normalizeRole(value: unknown): UserRole {
     return value as UserRole;
   }
   return "donor";
+}
+
+function normalizeBloodType(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) {
+    return null;
+  }
+  return BLOOD_TYPES.includes(normalized as (typeof BLOOD_TYPES)[number]) ? normalized : null;
 }
 
 export async function ensureProfileForUser(
@@ -29,6 +40,7 @@ export async function ensureProfileForUser(
     user.user_metadata.phone.trim().length
       ? user.user_metadata.phone.trim()
       : null;
+  const donorBloodType = normalizeBloodType(user.user_metadata?.donor_blood_type);
   const staffIdNumber =
     typeof user.user_metadata?.staff_id_number === "string" &&
     user.user_metadata.staff_id_number.trim().length
@@ -56,6 +68,15 @@ export async function ensureProfileForUser(
   }
 
   if (existing) {
+    if (requestedRole === "donor" && donorBloodType) {
+      await supabase.from("donor_profiles").upsert(
+        {
+          profile_id: existing.id,
+          blood_type: donorBloodType,
+        },
+        { onConflict: "profile_id" },
+      );
+    }
     return { ...existing, role: normalizeRole(existing.role) } as Profile;
   }
 
@@ -96,6 +117,7 @@ export async function ensureProfileForUser(
         {
           profile_id: linkedProfile.id,
           status: "pending_verification",
+          blood_type: donorBloodType,
         },
         { onConflict: "profile_id" },
       );
@@ -138,6 +160,7 @@ export async function ensureProfileForUser(
       {
         profile_id: inserted.id,
         status: "pending_verification",
+        blood_type: donorBloodType,
       },
       { onConflict: "profile_id" },
     );
