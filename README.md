@@ -195,6 +195,7 @@ OPENROUTER_MODEL=openai/gpt-4o-mini
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_FROM_NUMBER=+15551234567
+TWILIO_MESSAGING_SERVICE_SID=MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 4. Apply SQL:
@@ -247,7 +248,7 @@ where email = 'admin-user@example.com';
    - `OPENROUTER_MODEL` (optional, defaults to `openai/gpt-4o-mini`)
    - `TWILIO_ACCOUNT_SID` (server-side secret)
    - `TWILIO_AUTH_TOKEN` (server-side secret)
-   - `TWILIO_FROM_NUMBER` (Twilio sender number)
+   - `TWILIO_FROM_NUMBER` (Twilio sender number) OR `TWILIO_MESSAGING_SERVICE_SID`
 3. Deploy.
 4. Ensure the Supabase migration + seed SQL has been run in the connected Supabase project.
 5. In Supabase Auth settings, confirm Site URL + Redirect URLs include:

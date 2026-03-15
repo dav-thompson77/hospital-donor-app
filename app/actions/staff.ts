@@ -184,8 +184,13 @@ export async function createBloodRequestAction(formData: FormData) {
       } else {
         smsFailed += 1;
         if (!smsWarning && smsResult.error) {
-          smsWarning = smsResult.error;
+          smsWarning = smsResult.error.slice(0, 180);
         }
+      }
+    } else {
+      smsFailed += 1;
+      if (!smsWarning) {
+        smsWarning = "Some donors are missing phone numbers, so SMS was skipped.";
       }
     }
   }
