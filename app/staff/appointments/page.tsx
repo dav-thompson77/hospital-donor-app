@@ -2,6 +2,7 @@ import {
   createStaffAppointmentAction,
   updateAppointmentStatusAction,
 } from "@/app/actions/staff";
+import { recordDonationAction } from "@/app/actions/donations";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,24 +19,16 @@ function getProfileName(
     | null
     | undefined,
 ) {
-  if (!profile) {
-    return "Unknown donor";
-  }
-  if (Array.isArray(profile)) {
-    return profile[0]?.full_name ?? "Unknown donor";
-  }
+  if (!profile) return "Unknown donor";
+  if (Array.isArray(profile)) return profile[0]?.full_name ?? "Unknown donor";
   return profile.full_name ?? "Unknown donor";
 }
 
 function centreNameFromJoin(
   centre: { name: string } | Array<{ name: string }> | null | undefined,
 ) {
-  if (!centre) {
-    return "Unknown centre";
-  }
-  if (Array.isArray(centre)) {
-    return centre[0]?.name ?? "Unknown centre";
-  }
+  if (!centre) return "Unknown centre";
+  if (Array.isArray(centre)) return centre[0]?.name ?? "Unknown centre";
   return centre.name ?? "Unknown centre";
 }
 
@@ -70,10 +63,109 @@ export default async function StaffAppointmentsPage() {
 
   return (
     <div className="space-y-6">
+
+      {/* Record completed donation */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Record completed donation</CardTitle>
+          <CardDescription>
+            Log a donation after it has taken place. This updates the donor
+            profile, next eligible date, and donation history automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={recordDonationAction} className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="record_donor_profile_id">Donor</Label>
+              <select
+                id="record_donor_profile_id"
+                name="donor_profile_id"
+                required
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+              >
+                <option value="">Select donor</option>
+                {donors.map((donor) => (
+                  <option key={donor.profile_id} value={donor.profile_id}>
+                    {getProfileName(donor.profiles)} ({donor.blood_type ?? "unknown"})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="record_center_id">Centre where donation occurred</Label>
+              <select
+                id="record_center_id"
+                name="center_id"
+                required
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+              >
+                <option value="">Select centre</option>
+                {centres.map((centre) => (
+                  <option key={centre.id} value={centre.id}>
+                    {centre.name} ({centre.parish})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="record_blood_type">Blood type donated</Label>
+              <select
+                id="record_blood_type"
+                name="blood_type"
+                required
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+              >
+                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bt) => (
+                  <option key={bt} value={bt}>{bt}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="record_donated_at">Date and time of donation</Label>
+              <Input
+                id="record_donated_at"
+                name="donated_at"
+                type="datetime-local"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="record_units">Units donated</Label>
+              <Input
+                id="record_units"
+                name="units"
+                type="number"
+                step="0.1"
+                defaultValue="1.0"
+                min="0.5"
+                max="2.0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="record_notes">Notes</Label>
+              <Input
+                id="record_notes"
+                name="notes"
+                placeholder="Any observations or notes"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="md:col-span-2 bg-red-600 hover:bg-red-700 text-white"
+            >
+              Record donation
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Create appointment */}
       <Card>
         <CardHeader>
           <CardTitle>Create appointment</CardTitle>
-          <CardDescription>Schedule blood typing, screening, or donation for a selected donor.</CardDescription>
+          <CardDescription>
+            Schedule blood typing, screening, or donation for a selected donor.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={createStaffAppointmentAction} className="grid gap-4 md:grid-cols-2">
@@ -137,14 +229,19 @@ export default async function StaffAppointmentsPage() {
                 defaultValue="screening"
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
               >
-                <option value="blood_typing">blood_typing</option>
-                <option value="screening">screening</option>
-                <option value="donation">donation</option>
+                <option value="blood_typing">Blood typing</option>
+                <option value="screening">Screening</option>
+                <option value="donation">Donation</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="scheduled_at">Date/time</Label>
-              <Input id="scheduled_at" name="scheduled_at" type="datetime-local" required />
+              <Label htmlFor="scheduled_at">Date / time</Label>
+              <Input
+                id="scheduled_at"
+                name="scheduled_at"
+                type="datetime-local"
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
@@ -157,10 +254,13 @@ export default async function StaffAppointmentsPage() {
         </CardContent>
       </Card>
 
+      {/* Manage appointments */}
       <Card>
         <CardHeader>
           <CardTitle>Manage appointments</CardTitle>
-          <CardDescription>Update appointment outcomes as donors progress.</CardDescription>
+          <CardDescription>
+            Update appointment outcomes as donors progress.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {appointments.length ? (
@@ -183,19 +283,28 @@ export default async function StaffAppointmentsPage() {
                     {centreNameFromJoin(appointment.blood_centers)}
                   </p>
                   {appointment.notes ? (
-                    <p className="mb-3 text-sm text-muted-foreground">{appointment.notes}</p>
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      {appointment.notes}
+                    </p>
                   ) : null}
-                  <form action={updateAppointmentStatusAction} className="flex items-center gap-2">
-                    <input type="hidden" name="appointment_id" value={appointment.id} />
+                  <form
+                    action={updateAppointmentStatusAction}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="hidden"
+                      name="appointment_id"
+                      value={appointment.id}
+                    />
                     <select
                       name="status"
                       defaultValue={appointment.status}
                       className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
                     >
-                      <option value="scheduled">scheduled</option>
-                      <option value="completed">completed</option>
-                      <option value="cancelled">cancelled</option>
-                      <option value="no_show">no_show</option>
+                      <option value="scheduled">Scheduled</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="no_show">No show</option>
                     </select>
                     <Button type="submit" size="sm">
                       Update status
@@ -205,7 +314,9 @@ export default async function StaffAppointmentsPage() {
               );
             })
           ) : (
-            <p className="text-sm text-muted-foreground">No appointments scheduled.</p>
+            <p className="text-sm text-muted-foreground">
+              No appointments scheduled.
+            </p>
           )}
         </CardContent>
       </Card>

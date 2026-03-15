@@ -1,0 +1,8 @@
+{
+    "crons": [
+      {
+        "path": "/api/monitor?secret=bloodbridge-monitor-2026",
+        "schedule": "0 * * * *"
+      }
+    ]
+  }
