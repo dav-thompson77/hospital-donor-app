@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { ensureProfileForUser } from "@/lib/auth";
 import { runAIMonitor } from "@/lib/ai/monitor";
 import type { MonitorRunResult } from "@/lib/ai/monitor";
 
@@ -40,7 +39,28 @@ export async function triggerAIMonitorNowAction(
       };
     }
 
-    const profile = await ensureProfileForUser(supabase, user);
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, role")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return {
+        status: "error",
+        message: `Profile lookup failed: ${profileError.message}`,
+        result: null,
+      };
+    }
+
+    if (!profile) {
+      return {
+        status: "error",
+        message: "No staff profile was found for this account.",
+        result: null,
+      };
+    }
+
     if (profile.role !== "blood_bank_staff" && profile.role !== "admin") {
       return {
         status: "error",
