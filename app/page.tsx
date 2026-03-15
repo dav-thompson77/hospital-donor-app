@@ -21,6 +21,7 @@ import { AuthHomeRedirect } from "@/components/auth-home-redirect";
 import { ImpactNetwork } from "@/components/landing/impact-network";
 import { ensureProfileForUser, getRoleHomePath } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicUrgentRequests } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 import {
   Building2,
@@ -84,7 +85,7 @@ export default async function Home({
     donorsCountResult,
     alertsCountResult,
     responsesCountResult,
-    urgentRequestsResult,
+    urgentRequests,
     recentResponsesResult,
     bookedAppointmentsResult,
     activeCentresResult,
@@ -101,14 +102,7 @@ export default async function Home({
       .from("donor_alert_responses")
       .select("id", { head: true, count: "exact" })
       .neq("response_status", "pending"),
-    supabase
-      .from("blood_requests")
-      .select(
-        "id, blood_type_needed, urgency, required_by, blood_centers(name, parish)",
-      )
-      .eq("status", "active")
-      .order("required_by", { ascending: true })
-      .limit(4),
+    getPublicUrgentRequests(4),
     supabase
       .from("donor_alert_responses")
       .select("id, response_status, responded_at")
@@ -133,7 +127,6 @@ export default async function Home({
   const donorCount = donorsCountResult.count ?? 0;
   const alertCount = alertsCountResult.count ?? 0;
   const responseCount = responsesCountResult.count ?? 0;
-  const urgentRequests = urgentRequestsResult.data ?? [];
   const recentResponses = recentResponsesResult.data ?? [];
   const bookedAppointments = bookedAppointmentsResult.data ?? [];
   const activeCentres = activeCentresResult.data ?? [];
