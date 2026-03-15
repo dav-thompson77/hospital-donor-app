@@ -44,7 +44,7 @@ export default async function StaffDashboardPage() {
     getStaffDashboardData(supabase),
     supabase
       .from("blood_requests")
-      .select("id, blood_type_needed, urgency, required_by, status, blood_centres(name)")
+      .select("id, blood_type_needed, urgency, required_by, status, blood_centers(name)")
       .order("created_at", { ascending: false })
       .limit(5),
     supabase
@@ -121,7 +121,7 @@ export default async function StaffDashboardPage() {
                 <div key={request.id} className="rounded-md border p-3">
                   <div className="mb-2 flex items-center justify-between">
                     <p className="font-medium">
-                      {request.blood_type_needed} at {centreNameFromJoin(request.blood_centres)}
+                      {request.blood_type_needed} at {centreNameFromJoin(request.blood_centers)}
                     </p>
                     <StatusBadge status={request.urgency} />
                   </div>

@@ -56,7 +56,7 @@ create table if not exists public.donor_profiles (
     )
 );
 
-create table if not exists public.blood_centres (
+create table if not exists public.blood_centers (
   id bigserial primary key,
   name text not null,
   parish text not null,
@@ -87,7 +87,7 @@ create table if not exists public.blood_requests (
   created_by_profile_id uuid not null references public.profiles (id) on delete restrict,
   blood_type_needed text not null,
   urgency public.urgency_level not null default 'medium',
-  centre_id bigint not null references public.blood_centres (id) on delete restrict,
+  center_id bigint not null references public.blood_centers (id) on delete restrict,
   required_by date not null,
   note text,
   status text not null default 'active' check (status in ('active', 'fulfilled', 'cancelled')),
@@ -103,7 +103,7 @@ create table if not exists public.appointments (
   donor_profile_id uuid not null references public.donor_profiles (profile_id) on delete cascade,
   created_by_profile_id uuid not null references public.profiles (id) on delete restrict,
   blood_request_id bigint references public.blood_requests (id) on delete set null,
-  centre_id bigint not null references public.blood_centres (id) on delete restrict,
+  center_id bigint not null references public.blood_centers (id) on delete restrict,
   appointment_type public.appointment_type not null,
   status public.appointment_status not null default 'scheduled',
   scheduled_at timestamptz not null,
@@ -115,7 +115,7 @@ create table if not exists public.appointments (
 create table if not exists public.donation_history (
   id bigserial primary key,
   donor_profile_id uuid not null references public.donor_profiles (profile_id) on delete cascade,
-  centre_id bigint not null references public.blood_centres (id) on delete restrict,
+  center_id bigint not null references public.blood_centers (id) on delete restrict,
   appointment_id bigint unique references public.appointments (id) on delete set null,
   donated_at timestamptz not null,
   blood_type text not null,
@@ -198,7 +198,7 @@ create index if not exists donor_profiles_status_blood_type_idx on public.donor_
 create index if not exists donor_profiles_last_donation_idx on public.donor_profiles (last_donation_date);
 create index if not exists blood_requests_status_urgency_required_idx on public.blood_requests (status, urgency, required_by);
 create index if not exists appointments_donor_scheduled_idx on public.appointments (donor_profile_id, scheduled_at desc);
-create index if not exists appointments_centre_scheduled_idx on public.appointments (centre_id, scheduled_at desc);
+create index if not exists appointments_centre_scheduled_idx on public.appointments (center_id, scheduled_at desc);
 create index if not exists donor_alerts_donor_created_idx on public.donor_alerts (donor_profile_id, created_at desc);
 create index if not exists donor_alert_responses_alert_status_idx on public.donor_alert_responses (alert_id, response_status);
 create index if not exists notifications_recipient_created_idx on public.notifications (recipient_profile_id, created_at desc);
@@ -223,9 +223,9 @@ create trigger donor_profiles_set_updated_at
 before update on public.donor_profiles
 for each row execute function public.set_updated_at();
 
-drop trigger if exists blood_centres_set_updated_at on public.blood_centres;
-create trigger blood_centres_set_updated_at
-before update on public.blood_centres
+drop trigger if exists blood_centers_set_updated_at on public.blood_centers;
+create trigger blood_centers_set_updated_at
+before update on public.blood_centers
 for each row execute function public.set_updated_at();
 
 drop trigger if exists donor_verification_steps_set_updated_at on public.donor_verification_steps;
@@ -347,7 +347,7 @@ for each row execute procedure public.handle_new_user();
 
 alter table public.profiles enable row level security;
 alter table public.donor_profiles enable row level security;
-alter table public.blood_centres enable row level security;
+alter table public.blood_centers enable row level security;
 alter table public.donor_verification_steps enable row level security;
 alter table public.appointments enable row level security;
 alter table public.donation_history enable row level security;
@@ -452,16 +452,16 @@ for insert
 to authenticated
 with check (donor_profile_id = public.current_profile_id());
 
-drop policy if exists "centres_public_read" on public.blood_centres;
+drop policy if exists "centres_public_read" on public.blood_centers;
 create policy "centres_public_read"
-on public.blood_centres
+on public.blood_centers
 for select
 to anon, authenticated
 using (true);
 
-drop policy if exists "centres_staff_manage" on public.blood_centres;
+drop policy if exists "centres_staff_manage" on public.blood_centers;
 create policy "centres_staff_manage"
-on public.blood_centres
+on public.blood_centers
 for all
 to authenticated
 using (public.is_staff_or_admin())

@@ -27,7 +27,7 @@ export default async function DonorDonationHistoryPage() {
 
   const { data: donations } = await supabase
     .from("donation_history")
-    .select("id, donated_at, blood_type, units, notes, blood_centres(name, parish)")
+    .select("id, donated_at, blood_type, units, notes, blood_centers(name, parish)")
     .eq("donor_profile_id", profile.id)
     .order("donated_at", { ascending: false });
 
@@ -53,7 +53,7 @@ export default async function DonorDonationHistoryPage() {
               {donations.map((donation) => (
                 <TableRow key={donation.id}>
                   <TableCell>{formatDateTime(donation.donated_at)}</TableCell>
-                  <TableCell>{centreNameFromJoin(donation.blood_centres)}</TableCell>
+                  <TableCell>{centreNameFromJoin(donation.blood_centers)}</TableCell>
                   <TableCell>{donation.blood_type}</TableCell>
                   <TableCell>{donation.units}</TableCell>
                   <TableCell className="text-muted-foreground">

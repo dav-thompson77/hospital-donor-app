@@ -8,7 +8,7 @@ import { Building2, Phone } from "lucide-react";
 export default async function DonationCentresPage() {
   const supabase = await createClient();
   const { data: centres } = await supabase
-    .from("blood_centres")
+    .from("blood_centers")
     .select("*")
     .eq("is_active", true)
     .order("name");

@@ -47,7 +47,7 @@ export default async function StaffAppointmentsPage() {
       .select("profile_id, blood_type, profiles!inner(full_name)")
       .order("updated_at", { ascending: false })
       .limit(100),
-    supabase.from("blood_centres").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("blood_centers").select("id, name").eq("is_active", true).order("name"),
     supabase
       .from("blood_requests")
       .select("id, blood_type_needed, urgency, status")
@@ -56,7 +56,7 @@ export default async function StaffAppointmentsPage() {
     supabase
       .from("appointments")
       .select(
-        "id, appointment_type, status, scheduled_at, notes, donor_profile_id, blood_request_id, blood_centres(name), donor_profiles(profile_id, profiles(full_name))",
+        "id, appointment_type, status, scheduled_at, notes, donor_profile_id, blood_request_id, blood_centers(name), donor_profiles(profile_id, profiles(full_name))",
       )
       .order("scheduled_at", { ascending: true }),
   ]);
@@ -92,10 +92,10 @@ export default async function StaffAppointmentsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="centre_id">Centre</Label>
+              <Label htmlFor="center_id">Centre</Label>
               <select
-                id="centre_id"
-                name="centre_id"
+                id="center_id"
+                name="center_id"
                 required
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
               >
@@ -173,7 +173,7 @@ export default async function StaffAppointmentsPage() {
                   </div>
                   <p className="mb-3 text-xs text-muted-foreground">
                     {formatDateTime(appointment.scheduled_at)} •{" "}
-                    {centreNameFromJoin(appointment.blood_centres)}
+                    {centreNameFromJoin(appointment.blood_centers)}
                   </p>
                   {appointment.notes ? (
                     <p className="mb-3 text-sm text-muted-foreground">{appointment.notes}</p>

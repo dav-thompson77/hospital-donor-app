@@ -65,7 +65,7 @@ export default async function Home({
     urgentRequestsResult,
   ] = await Promise.all([
     supabase
-      .from("blood_centres")
+      .from("blood_centers")
       .select("id", { head: true, count: "exact" })
       .eq("is_active", true),
     supabase
@@ -79,7 +79,7 @@ export default async function Home({
     supabase
       .from("blood_requests")
       .select(
-        "id, blood_type_needed, urgency, required_by, blood_centres(name, parish)",
+        "id, blood_type_needed, urgency, required_by, blood_centers(name, parish)",
       )
       .eq("status", "active")
       .order("required_by", { ascending: true })
@@ -274,9 +274,9 @@ export default async function Home({
           <CardContent className="grid gap-3 md:grid-cols-2">
             {urgentRequests.length ? (
               urgentRequests.map((request) => {
-                const centre = Array.isArray(request.blood_centres)
-                  ? request.blood_centres[0]
-                  : request.blood_centres;
+                const centre = Array.isArray(request.blood_centers)
+                  ? request.blood_centers[0]
+                  : request.blood_centers;
 
                 return (
                   <div

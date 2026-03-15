@@ -32,10 +32,10 @@ export default async function DonorAppointmentsPage() {
   const { supabase, profile } = await requireRole(["donor", "admin"]);
 
   const [centresResult, appointmentsResult] = await Promise.all([
-    supabase.from("blood_centres").select("id, name, parish").eq("is_active", true).order("name"),
+    supabase.from("blood_centers").select("id, name, parish").eq("is_active", true).order("name"),
     supabase
       .from("appointments")
-      .select("id, appointment_type, status, scheduled_at, notes, blood_centres(name, parish)")
+      .select("id, appointment_type, status, scheduled_at, notes, blood_centers(name, parish)")
       .eq("donor_profile_id", profile.id)
       .order("scheduled_at", { ascending: true }),
   ]);
@@ -56,10 +56,10 @@ export default async function DonorAppointmentsPage() {
           <CardContent>
             <form action={bookDonorAppointmentAction} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="centre_id">Donation centre</Label>
+                <Label htmlFor="center_id">Donation centre</Label>
                 <select
-                  id="centre_id"
-                  name="centre_id"
+                  id="center_id"
+                  name="center_id"
                   required
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
                 >
@@ -121,7 +121,7 @@ export default async function DonorAppointmentsPage() {
                       <TableCell className="capitalize">
                         {appointment.appointment_type.replaceAll("_", " ")}
                       </TableCell>
-                      <TableCell>{centreNameFromJoin(appointment.blood_centres)}</TableCell>
+                      <TableCell>{centreNameFromJoin(appointment.blood_centers)}</TableCell>
                       <TableCell>{formatDateTime(appointment.scheduled_at)}</TableCell>
                       <TableCell>
                         <StatusBadge status={appointment.status} />

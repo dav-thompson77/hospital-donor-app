@@ -26,10 +26,10 @@ export default async function StaffBloodRequestsPage() {
   const { supabase } = await requireRole(["blood_bank_staff", "admin"]);
 
   const [centresResult, requestsResult] = await Promise.all([
-    supabase.from("blood_centres").select("id, name, parish").eq("is_active", true).order("name"),
+    supabase.from("blood_centers").select("id, name, parish").eq("is_active", true).order("name"),
     supabase
       .from("blood_requests")
-      .select("id, blood_type_needed, urgency, required_by, note, status, ai_message_suggestions, blood_centres(name)")
+      .select("id, blood_type_needed, urgency, required_by, note, status, ai_message_suggestions, blood_centers(name)")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -77,10 +77,10 @@ export default async function StaffBloodRequestsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="centre_id">Donation centre</Label>
+              <Label htmlFor="center_id">Donation centre</Label>
               <select
-                id="centre_id"
-                name="centre_id"
+                id="center_id"
+                name="center_id"
                 required
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
               >
@@ -128,7 +128,7 @@ export default async function StaffBloodRequestsPage() {
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold">
                     Request #{request.id} • {request.blood_type_needed} •{" "}
-                    {centreNameFromJoin(request.blood_centres)}
+                    {centreNameFromJoin(request.blood_centers)}
                   </p>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={request.urgency} />

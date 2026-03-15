@@ -133,7 +133,7 @@ Includes:
 - tables:
   - `profiles`
   - `donor_profiles`
-  - `blood_centres`
+  - `blood_centers`
   - `donor_verification_steps`
   - `appointments`
   - `donation_history`

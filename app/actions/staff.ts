@@ -25,7 +25,7 @@ export async function createBloodRequestAction(formData: FormData) {
 
   const bloodTypeNeeded = String(formData.get("blood_type_needed") ?? "").trim();
   const urgency = String(formData.get("urgency") ?? "medium");
-  const centreId = Number(formData.get("centre_id"));
+  const centreId = Number(formData.get("center_id"));
   const requiredBy = String(formData.get("required_by") ?? "");
   const note = String(formData.get("note") ?? "").trim();
 
@@ -37,7 +37,7 @@ export async function createBloodRequestAction(formData: FormData) {
   }
 
   const { data: centre } = await supabase
-    .from("blood_centres")
+    .from("blood_centers")
     .select("name")
     .eq("id", centreId)
     .maybeSingle();
@@ -77,7 +77,7 @@ export async function createBloodRequestAction(formData: FormData) {
     created_by_profile_id: profile.id,
     blood_type_needed: bloodTypeNeeded,
     urgency,
-    centre_id: centreId,
+    center_id: centreId,
     required_by: requiredBy,
     note: note || null,
     ai_message_suggestions: suggestions,
@@ -91,7 +91,7 @@ export async function createBloodRequestAction(formData: FormData) {
 export async function createStaffAppointmentAction(formData: FormData) {
   const { supabase, profile } = await requireRole(["blood_bank_staff", "admin"]);
   const donorProfileId = String(formData.get("donor_profile_id") ?? "");
-  const centreId = Number(formData.get("centre_id"));
+  const centreId = Number(formData.get("center_id"));
   const bloodRequestId = Number(formData.get("blood_request_id"));
   const appointmentType = String(formData.get("appointment_type") ?? "");
   const scheduledAt = String(formData.get("scheduled_at") ?? "");
@@ -107,7 +107,7 @@ export async function createStaffAppointmentAction(formData: FormData) {
   await supabase.from("appointments").insert({
     donor_profile_id: donorProfileId,
     created_by_profile_id: profile.id,
-    centre_id: centreId,
+    center_id: centreId,
     blood_request_id: Number.isFinite(bloodRequestId) ? bloodRequestId : null,
     appointment_type: appointmentType,
     scheduled_at: new Date(scheduledAt).toISOString(),

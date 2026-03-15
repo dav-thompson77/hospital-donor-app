@@ -74,7 +74,7 @@ set
   approval_outcome = excluded.approval_outcome,
   updated_by_profile_id = excluded.updated_by_profile_id;
 
-insert into public.blood_centres (id, name, parish, address, latitude, longitude, phone, is_active)
+insert into public.blood_centers (id, name, parish, address, latitude, longitude, phone, is_active)
 values
   (1, 'National Blood Transfusion Service', 'Kingston', '21 Slipe Pen Road, Kingston', 18.001450, -76.792400, '+1-876-555-3001', true),
   (2, 'St. Ann''s Bay Hospital', 'St. Ann', '15 St. Ann''s Bay Main Road, St. Ann''s Bay', 18.434200, -77.202300, '+1-876-555-3002', true),
@@ -96,7 +96,7 @@ insert into public.blood_requests (
   created_by_profile_id,
   blood_type_needed,
   urgency,
-  centre_id,
+  center_id,
   required_by,
   note,
   status,
@@ -164,7 +164,7 @@ set
   created_by_profile_id = excluded.created_by_profile_id,
   blood_type_needed = excluded.blood_type_needed,
   urgency = excluded.urgency,
-  centre_id = excluded.centre_id,
+  center_id = excluded.center_id,
   required_by = excluded.required_by,
   note = excluded.note,
   status = excluded.status,
@@ -175,7 +175,7 @@ insert into public.appointments (
   donor_profile_id,
   created_by_profile_id,
   blood_request_id,
-  centre_id,
+  center_id,
   appointment_type,
   status,
   scheduled_at,
@@ -195,7 +195,7 @@ set
   donor_profile_id = excluded.donor_profile_id,
   created_by_profile_id = excluded.created_by_profile_id,
   blood_request_id = excluded.blood_request_id,
-  centre_id = excluded.centre_id,
+  center_id = excluded.center_id,
   appointment_type = excluded.appointment_type,
   status = excluded.status,
   scheduled_at = excluded.scheduled_at,
@@ -204,7 +204,7 @@ set
 insert into public.donation_history (
   id,
   donor_profile_id,
-  centre_id,
+  center_id,
   appointment_id,
   donated_at,
   blood_type,
@@ -219,7 +219,7 @@ values
 on conflict (id) do update
 set
   donor_profile_id = excluded.donor_profile_id,
-  centre_id = excluded.centre_id,
+  center_id = excluded.center_id,
   appointment_id = excluded.appointment_id,
   donated_at = excluded.donated_at,
   blood_type = excluded.blood_type,
@@ -293,7 +293,7 @@ set
   body = excluded.body,
   is_read = excluded.is_read;
 
-select setval(pg_get_serial_sequence('public.blood_centres', 'id'), coalesce((select max(id) from public.blood_centres), 1), true);
+select setval(pg_get_serial_sequence('public.blood_centers', 'id'), coalesce((select max(id) from public.blood_centers), 1), true);
 select setval(pg_get_serial_sequence('public.blood_requests', 'id'), coalesce((select max(id) from public.blood_requests), 1), true);
 select setval(pg_get_serial_sequence('public.appointments', 'id'), coalesce((select max(id) from public.appointments), 1), true);
 select setval(pg_get_serial_sequence('public.donation_history', 'id'), coalesce((select max(id) from public.donation_history), 1), true);

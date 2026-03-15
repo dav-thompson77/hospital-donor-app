@@ -27,19 +27,19 @@ export async function getDonorDashboardData(
       .maybeSingle(),
     supabase
       .from("appointments")
-      .select("*, blood_centres(name)")
+      .select("*, blood_centers(name)")
       .eq("donor_profile_id", profileId)
       .order("scheduled_at", { ascending: true })
       .limit(5),
     supabase
       .from("donation_history")
-      .select("*, blood_centres(name)")
+      .select("*, blood_centers(name)")
       .eq("donor_profile_id", profileId)
       .order("donated_at", { ascending: false })
       .limit(5),
     supabase
       .from("donor_alerts")
-      .select("*, blood_requests(blood_type_needed, urgency, required_by), blood_centres:blood_requests(centre_id)")
+      .select("*, blood_requests(blood_type_needed, urgency, required_by), blood_centers:blood_requests(center_id)")
       .eq("donor_profile_id", profileId)
       .order("created_at", { ascending: false })
       .limit(10),
@@ -62,7 +62,7 @@ export async function getDonorDashboardData(
 
 export async function getBloodCentres(supabase: SupabaseClient) {
   const { data, error } = await supabase
-    .from("blood_centres")
+    .from("blood_centers")
     .select("*")
     .eq("is_active", true)
     .order("name", { ascending: true });

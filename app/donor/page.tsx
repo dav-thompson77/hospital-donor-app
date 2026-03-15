@@ -30,7 +30,7 @@ export default async function DonorDashboardPage() {
         .maybeSingle(),
       supabase
         .from("appointments")
-        .select("id, appointment_type, status, scheduled_at, blood_centres(name)")
+        .select("id, appointment_type, status, scheduled_at, blood_centers(name)")
         .eq("donor_profile_id", profile.id)
         .order("scheduled_at", { ascending: true })
         .limit(4),

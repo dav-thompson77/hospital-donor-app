@@ -63,7 +63,7 @@ export async function updateDonorProfileAction(formData: FormData) {
 export async function bookDonorAppointmentAction(formData: FormData) {
   const { supabase, profile } = await requireRole(["donor"]);
 
-  const centreId = Number(formData.get("centre_id"));
+  const centreId = Number(formData.get("center_id"));
   const appointmentType = String(formData.get("appointment_type"));
   const scheduledAt = String(formData.get("scheduled_at") ?? "");
   const notes = String(formData.get("notes") ?? "").trim();
@@ -75,7 +75,7 @@ export async function bookDonorAppointmentAction(formData: FormData) {
   await supabase.from("appointments").insert({
     donor_profile_id: profile.id,
     created_by_profile_id: profile.id,
-    centre_id: centreId,
+    center_id: centreId,
     appointment_type: appointmentType,
     scheduled_at: new Date(scheduledAt).toISOString(),
     status: "scheduled",
