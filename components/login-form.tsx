@@ -135,10 +135,17 @@ export function LoginForm({
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
               <Link
-                href="/auth/sign-up"
+                href="/auth/sign-up?role=donor"
                 className="underline underline-offset-4"
               >
-                Sign up
+                Sign up as donor
+              </Link>
+              {" • "}
+              <Link
+                href="/auth/sign-up?role=blood_bank_staff"
+                className="underline underline-offset-4"
+              >
+                Sign up as blood bank
               </Link>
             </div>
           </form>

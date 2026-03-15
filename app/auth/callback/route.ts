@@ -39,9 +39,16 @@ export async function GET(request: NextRequest) {
       );
     }
   } else {
-    return NextResponse.redirect(
-      `${origin}/auth/error?error=${encodeURIComponent("Missing auth callback parameters")}`,
-    );
+    const {
+      data: { user: existingUser },
+    } = await supabase.auth.getUser();
+    if (!existingUser) {
+      return NextResponse.redirect(
+        `${origin}/auth/error?error=${encodeURIComponent(
+          "Missing auth callback parameters",
+        )}`,
+      );
+    }
   }
 
   const {

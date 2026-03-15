@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { StatusBadge } from "@/components/status-badge";
+import { AuthHomeRedirect } from "@/components/auth-home-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 import {
@@ -23,9 +24,34 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import { redirect } from "next/navigation";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const hasCode = typeof params.code === "string" && params.code.length > 0;
+  const hasTokenHash =
+    typeof params.token_hash === "string" &&
+    params.token_hash.length > 0 &&
+    typeof params.type === "string" &&
+    params.type.length > 0;
+
+  if (hasCode || hasTokenHash) {
+    const callbackParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (typeof value === "string") {
+        callbackParams.set(key, value);
+      }
+    }
+    if (!callbackParams.has("next")) {
+      callbackParams.set("next", "/dashboard");
+    }
+    redirect(`/auth/callback?${callbackParams.toString()}`);
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -68,6 +94,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-background">
+      <AuthHomeRedirect />
       <section className="border-b bg-card/80">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-6">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
@@ -114,12 +141,31 @@ export default async function Home() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href={user ? "/dashboard" : "/auth/sign-up"}>
-                Register as a donor
+              <Link href={user ? "/dashboard" : "/auth/sign-up?role=donor"}>
+                Sign up as donor
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="secondary">
+              <Link
+                href={
+                  user
+                    ? "/dashboard"
+                    : "/auth/sign-up?role=blood_bank_staff"
+                }
+              >
+                Sign up as blood bank
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <Link href="/centres">View donation centres</Link>
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/donor">Open donor dashboard</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/staff">Open blood bank dashboard</Link>
             </Button>
           </div>
 
