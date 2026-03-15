@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { generateOpenRouterOutreachSuggestions } from "@/lib/ai/openrouter";
+import { sendSmsMessage } from "@/lib/notifications/sms";
 import { redirect } from "next/navigation";
 import type { AppointmentStatus, AppointmentType, DonorStatus, UrgencyLevel } from "@/lib/types";
 
@@ -20,6 +21,31 @@ const DONOR_STATUSES: DonorStatus[] = [
   "eligible_again",
 ];
 const URGENCY_LEVELS: UrgencyLevel[] = ["low", "medium", "high", "critical"];
+
+function getNameAndPhoneFromJoin(
+  profileJoin:
+    | { full_name: string | null; phone: string | null }
+    | Array<{ full_name: string | null; phone: string | null }>
+    | null
+    | undefined,
+) {
+  if (!profileJoin) {
+    return { fullName: "Donor", phone: null };
+  }
+  const row = Array.isArray(profileJoin) ? profileJoin[0] : profileJoin;
+  return {
+    fullName: row?.full_name?.trim() || "Donor",
+    phone: row?.phone ?? null,
+  };
+}
+
+function makePersonalizedOutreachMessage(baseSuggestion: string, donorName: string) {
+  const cleaned = baseSuggestion.replace(/^URGENT OUTREACH:\s*/i, "").trim();
+  if (cleaned.toLowerCase().includes(donorName.toLowerCase())) {
+    return cleaned;
+  }
+  return `Hello ${donorName}, ${cleaned}`;
+}
 
 export async function createBloodRequestAction(formData: FormData) {
   const { supabase, profile } = await requireRole(["blood_bank_staff", "admin"]);
@@ -64,7 +90,9 @@ export async function createBloodRequestAction(formData: FormData) {
 
   const suggestions = outreachResult.suggestions;
 
-  const { error: insertError } = await supabase.from("blood_requests").insert({
+  const { data: requestRow, error: insertError } = await supabase
+    .from("blood_requests")
+    .insert({
     created_by_profile_id: profile.id,
     blood_type_needed: bloodTypeNeeded,
     urgency,
@@ -73,15 +101,109 @@ export async function createBloodRequestAction(formData: FormData) {
     note: note || null,
     ai_message_suggestions: suggestions,
     status: "active",
-  });
+    })
+    .select("id")
+    .single();
 
   if (insertError) {
     redirect(`/staff/requests?error=${encodeURIComponent(insertError.message)}`);
   }
 
+  if (!requestRow?.id) {
+    redirect("/staff/requests?error=Could%20not%20create%20blood%20request");
+  }
+
+  const { data: matchedDonors } = await supabase
+    .from("donor_profiles")
+    .select("profile_id, status, profiles!inner(full_name, phone)")
+    .eq("blood_type", bloodTypeNeeded)
+    .in("status", ["approved", "eligible_again"])
+    .limit(100);
+
+  let alertsSent = 0;
+  let smsSent = 0;
+  let smsFailed = 0;
+  let smsWarning = "";
+  const baseSuggestion = suggestions[0] ?? `${bloodTypeNeeded} donors needed at ${centre?.name ?? "the centre"}.`;
+
+  for (const donor of matchedDonors ?? []) {
+    const recipient = getNameAndPhoneFromJoin(
+      donor.profiles as
+        | { full_name: string | null; phone: string | null }
+        | Array<{ full_name: string | null; phone: string | null }>
+        | null
+        | undefined,
+    );
+
+    const personalizedMessage = makePersonalizedOutreachMessage(
+      baseSuggestion,
+      recipient.fullName,
+    );
+
+    const { data: alert, error: alertError } = await supabase
+      .from("donor_alerts")
+      .insert({
+        blood_request_id: requestRow.id,
+        donor_profile_id: donor.profile_id,
+        sent_by_profile_id: profile.id,
+        message: personalizedMessage,
+      })
+      .select("id")
+      .single();
+
+    if (alertError || !alert) {
+      continue;
+    }
+
+    alertsSent += 1;
+
+    await supabase.from("donor_alert_responses").upsert(
+      {
+        alert_id: alert.id,
+        donor_profile_id: donor.profile_id,
+        response_status: "pending",
+      },
+      { onConflict: "alert_id,donor_profile_id" },
+    );
+
+    await supabase.from("notifications").insert({
+      recipient_profile_id: donor.profile_id,
+      source_type: "alert",
+      source_id: alert.id,
+      title: "New blood donation alert",
+      body: personalizedMessage,
+    });
+
+    if (recipient.phone) {
+      const smsResult = await sendSmsMessage({
+        to: recipient.phone,
+        body: personalizedMessage,
+      });
+      if (smsResult.ok) {
+        smsSent += 1;
+      } else {
+        smsFailed += 1;
+        if (!smsWarning && smsResult.error) {
+          smsWarning = smsResult.error;
+        }
+      }
+    }
+  }
+
   revalidatePath("/staff");
   revalidatePath("/staff/requests");
-  redirect("/staff/requests?saved=1");
+  revalidatePath("/staff/alerts");
+  revalidatePath("/donor/alerts");
+  const next = new URLSearchParams({
+    saved: "1",
+    alerts: String(alertsSent),
+    smsSent: String(smsSent),
+    smsFailed: String(smsFailed),
+  });
+  if (smsWarning) {
+    next.set("smsWarning", smsWarning);
+  }
+  redirect(`/staff/requests?${next.toString()}`);
 }
 
 export async function createStaffAppointmentAction(formData: FormData) {

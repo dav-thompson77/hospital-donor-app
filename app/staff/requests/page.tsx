@@ -40,7 +40,14 @@ function normalizeSuggestionList(value: unknown) {
 export default async function StaffBloodRequestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    error?: string;
+    alerts?: string;
+    smsSent?: string;
+    smsFailed?: string;
+    smsWarning?: string;
+  }>;
 }) {
   const params = await searchParams;
   const { supabase } = await requireRole(["blood_bank_staff", "admin"]);
@@ -64,8 +71,18 @@ export default async function StaffBloodRequestsPage({
           <Sparkles className="h-4 w-4" />
           <AlertTitle>Blood request created</AlertTitle>
           <AlertDescription>
-            Request saved successfully with outreach suggestions.
+            Request saved. {params.alerts ?? "0"} donor alerts created,{" "}
+            {params.smsSent ?? "0"} SMS sent
+            {(params.smsFailed ?? "0") !== "0" ? `, ${params.smsFailed} SMS failed.` : "."}
           </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {params.smsWarning ? (
+        <Alert variant="destructive">
+          <Wand2 className="h-4 w-4" />
+          <AlertTitle>SMS provider warning</AlertTitle>
+          <AlertDescription>{params.smsWarning}</AlertDescription>
         </Alert>
       ) : null}
 

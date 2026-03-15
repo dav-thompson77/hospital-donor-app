@@ -71,6 +71,9 @@ It helps blood bank teams find, verify, schedule, and re-engage eligible donors 
 
 - OpenRouter-backed server route (`POST /api/ai/outreach`) generates outreach variants using server-side secrets.
 - If OpenRouter is unavailable, the app automatically falls back to rule-based templates.
+- On blood request creation, matching donors now receive:
+  - automatic in-app alerts (`donor_alerts`)
+  - automatic SMS dispatch to donor phone numbers (Twilio server-side integration)
 - Suggestions are generated from:
   - blood type
   - urgency
@@ -189,6 +192,9 @@ NEXT_PUBLIC_SITE_URL=https://your-vercel-domain.vercel.app
 OPENROUTER_API_KEY=your_openrouter_api_key
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=openai/gpt-4o-mini
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_FROM_NUMBER=+15551234567
 ```
 
 4. Apply SQL:
@@ -239,12 +245,15 @@ where email = 'admin-user@example.com';
    - `OPENROUTER_API_KEY` (server-side secret)
    - `OPENROUTER_BASE_URL` (optional, defaults to OpenRouter API)
    - `OPENROUTER_MODEL` (optional, defaults to `openai/gpt-4o-mini`)
+   - `TWILIO_ACCOUNT_SID` (server-side secret)
+   - `TWILIO_AUTH_TOKEN` (server-side secret)
+   - `TWILIO_FROM_NUMBER` (Twilio sender number)
 3. Deploy.
 4. Ensure the Supabase migration + seed SQL has been run in the connected Supabase project.
 5. In Supabase Auth settings, confirm Site URL + Redirect URLs include:
    - `https://your-vercel-domain.vercel.app/auth/callback`
    - `https://your-vercel-domain.vercel.app/dashboard`
-6. Add the OpenRouter key to your local env, Vercel env, and any CI secret store used for deployments.
+6. Add OpenRouter and Twilio secrets to local env, Vercel env, and any CI secret store used for deployments.
 
 ---
 
