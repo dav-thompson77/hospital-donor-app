@@ -1,109 +1,241 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# Blood Bridge MVP
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+Blood Bridge is a real-time donor coordination platform built with:
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+- **Next.js** (frontend + server actions)
+- **Supabase** (Postgres, Auth, Realtime, RLS)
+- **Vercel** (deployment)
 
-## Features
+It helps blood bank teams find, verify, schedule, and re-engage eligible donors while guiding donors through official screening and donation workflows.
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Proxy
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+> Clinical rule: this app supports the donation process and does **not** replace clinical screening or medical decision-making.
 
-## Demo
+---
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+## Implemented MVP scope
+
+### Roles
+
+- `donor`
+- `blood_bank_staff`
+- `admin`
+
+### Donor experience
+
+- Secure sign up/login with Supabase Auth
+- Donor dashboard
+- Donor profile management:
+  - full name
+  - email
+  - phone
+  - parish/location
+  - blood type
+  - date of birth
+  - emergency contact
+- Eligibility tracker (registered, ID verification, screening, haemoglobin, interview, approval/deferred)
+- Appointment booking:
+  - blood typing
+  - screening
+  - donation
+- Appointment history
+- Donation history
+- Next eligible donation date display
+- Real-time alert inbox
+- Alert response actions:
+  - interested
+  - booked
+  - unavailable
+- Donation centre finder page
+
+### Staff experience
+
+- Staff dashboard with analytics cards:
+  - active requests
+  - total approved donors
+  - pending verification
+  - booked appointments
+  - responses received
+- Blood request creation
+- Donor directory with filters:
+  - blood type
+  - approval status
+  - location
+  - last donation date
+  - response history
+- Donor workflow status management (verification + approval outcome)
+- Appointment creation and status updates
+- Alert sending (single donor or broadcast by blood-type match)
+- Real-time response tracking
+
+### AI-assisted outreach (demo-safe)
+
+- Rule-based server utility that generates outreach message suggestions from:
+  - blood type
+  - urgency
+  - donor approval status
+  - last donation date
+- Stored with blood requests in `ai_message_suggestions` (`jsonb`)
+- Architecture allows replacing with external LLM provider later
+
+### Realtime
+
+Supabase Realtime subscriptions refresh key pages when:
+
+- donor alerts/responses change
+- donor appointment records change
+- staff receives new response activity
+
+---
+
+## App routes
+
+- `/` landing page
+- `/auth/login`, `/auth/sign-up`, `/auth/forgot-password`, `/auth/update-password`
+- `/dashboard` role-aware redirect
+
+### Donor
+
+- `/donor`
+- `/donor/profile`
+- `/donor/appointments`
+- `/donor/alerts`
+- `/donor/donations`
+
+### Staff/Admin
+
+- `/staff`
+- `/staff/donors`
+- `/staff/requests`
+- `/staff/appointments`
+- `/staff/alerts`
+
+### Shared
+
+- `/centres`
+
+---
+
+## Database schema and seed
+
+### Migration files
+
+- `supabase/migrations/202603150101_init_blood_bridge.sql`
+
+Includes:
+
+- enums:
+  - `user_role`
+  - `donor_status`
+  - `appointment_type`
+  - `appointment_status`
+  - `urgency_level`
+  - `alert_response_status`
+- tables:
+  - `profiles`
+  - `donor_profiles`
+  - `blood_centers`
+  - `donor_verification_steps`
+  - `appointments`
+  - `donation_history`
+  - `blood_requests`
+  - `donor_alerts`
+  - `donor_alert_responses`
+  - `notifications`
+- indexes and updated_at triggers
+- new-user trigger from `auth.users` to create profile + donor rows
+- row level security policies for donor/staff/admin access controls
+
+### Seed file
+
+- `supabase/seed.sql`
+
+Seeds:
+
+- 6 donor profiles with varied blood types/statuses
+- 2 staff profiles (+ admin profile)
+- 3 centres
+- 3 blood requests
+- sample appointments, alerts, responses, notifications
+
+---
+
+## Local setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create local env:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Add your Supabase values (already prefilled in `.env.example`):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://znmzisdzzkifinjlylco.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_DAj5lxE9Td4QQBS6As_h_w_5riUAxc7
+```
+
+4. Apply SQL:
+
+- Hosted project: run migration SQL and seed SQL in Supabase SQL Editor.
+- With Supabase CLI/local DB:
+
+```bash
+supabase db push
+supabase db reset --seed
+```
+
+5. Run app:
+
+```bash
+npm run dev
+```
+
+---
+
+## Role assignment for real auth users
+
+New sign-ups default to `donor`. To grant staff/admin access, update the user profile role:
+
+```sql
+update public.profiles
+set role = 'blood_bank_staff'
+where email = 'staff-user@example.com';
+```
+
+or
+
+```sql
+update public.profiles
+set role = 'admin'
+where email = 'admin-user@example.com';
+```
+
+---
 
 ## Deploy to Vercel
 
-Vercel deployment will guide you through creating a Supabase account and project.
+1. Import this GitHub repo in Vercel.
+2. Set environment variables in Vercel project settings:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+3. Deploy.
+4. Ensure the Supabase migration + seed SQL has been run in the connected Supabase project.
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+---
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+## Notes
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+- `npm run build` passes.
+- If you run `npm run lint`, include source-only paths (example):
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+```bash
+npx eslint app components lib proxy.ts
+```
 
-## Clone and run locally
-
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
-
-2. Create a Next.js app using the Supabase Starter template npx command
-
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
-
-   ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
-
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
-
-3. Use `cd` to change into the app's directory
-
-   ```bash
-   cd with-supabase-app
-   ```
-
-4. Rename `.env.example` to `.env.local` and update the following:
-
-  ```env
-  NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
-  ```
-  > [!NOTE]
-  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
-  > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
-  > See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
-
-  Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
-
-5. You can now run the Next.js local development server:
-
-   ```bash
-   npm run dev
-   ```
-
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
-
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
-
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
-
-## Feedback and issues
-
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
-
-## More Supabase examples
-
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+because generated `.next` files are not meant to be linted directly.

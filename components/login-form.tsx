@@ -23,7 +23,9 @@ export function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingLink, setIsSendingLink] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -31,6 +33,7 @@ export function LoginForm({
     const supabase = createClient();
     setIsLoading(true);
     setError(null);
+    setInfo(null);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -38,12 +41,38 @@ export function LoginForm({
         password,
       });
       if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
+      router.push("/dashboard");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMagicLink = async () => {
+    if (!email) {
+      setError("Enter your email first to receive a sign-in link.");
+      return;
+    }
+
+    const supabase = createClient();
+    setIsSendingLink(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        },
+      });
+      if (error) throw error;
+      setInfo("Check your email for a secure sign-in link.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not send sign-in link.");
+    } finally {
+      setIsSendingLink(false);
     }
   };
 
@@ -53,7 +82,7 @@ export function LoginForm({
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Sign in with password or request a secure email login link.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,17 +118,34 @@ export function LoginForm({
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
+              {info && <p className="text-sm text-emerald-500">{info}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={isSendingLink}
+                onClick={handleMagicLink}
+              >
+                {isSendingLink ? "Sending link..." : "Email me a sign-in link"}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
               <Link
-                href="/auth/sign-up"
+                href="/auth/sign-up?role=donor"
                 className="underline underline-offset-4"
               >
-                Sign up
+                Sign up as donor
+              </Link>
+              {" • "}
+              <Link
+                href="/auth/sign-up?role=blood_bank_staff"
+                className="underline underline-offset-4"
+              >
+                Sign up as blood bank
               </Link>
             </div>
           </form>
