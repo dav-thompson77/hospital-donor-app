@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -46,16 +47,51 @@ export async function updateSession(request: NextRequest) {
   // with the Supabase client, your users may be randomly logged out.
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
+  const userId = typeof user?.sub === "string" ? user.sub : null;
+  const isProtectedPath =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/donor") ||
+    pathname.startsWith("/staff") ||
+    pathname.startsWith("/protected");
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  if (isProtectedPath && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (!isProtectedPath || !userId) {
+    return supabaseResponse;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  const role = profile?.role ?? "donor";
+
+  if (pathname.startsWith("/staff") && role !== "blood_bank_staff" && role !== "admin") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/donor";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname.startsWith("/donor") && role === "blood_bank_staff") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/staff";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === "/dashboard") {
+    if (role === "blood_bank_staff" || role === "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/staff";
+      return NextResponse.redirect(url);
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/donor";
     return NextResponse.redirect(url);
   }
 
