@@ -104,6 +104,25 @@ async function trySeedCentersViaRpc(supabase: SupabaseClient) {
   }
 }
 
+async function trySeedCentersViaInsert(supabase: SupabaseClient) {
+  const payload = DEFAULT_CENTER_SEED.map((center, index) => ({
+    id: center.id ?? index + 1,
+    name: center.name,
+    parish: center.parish,
+    address: center.address ?? `${center.name}, ${center.parish}`,
+    phone: center.phone ?? null,
+    is_active: center.is_active ?? true,
+  }));
+
+  const { error } = await supabase
+    .from("blood_centers")
+    .upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function getDonorDashboardData(
   supabase: SupabaseClient,
   profileId: string,
@@ -189,7 +208,20 @@ export async function getBloodCentres(supabase: SupabaseClient) {
       }
     }
   } catch {
-    // Swallow and return empty list if the RPC is unavailable.
+    // Try direct seeded insert for staff/admin users if RPC is unavailable.
+    try {
+      await trySeedCentersViaInsert(supabase);
+      try {
+        centers = await queryCenterOptions(supabase);
+      } catch {
+        centers = await queryCenterOptionsMinimal(supabase);
+      }
+      if (centers.length) {
+        return centers;
+      }
+    } catch {
+      // fallthrough
+    }
   }
 
   return [];

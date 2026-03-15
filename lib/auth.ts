@@ -36,43 +36,61 @@ export async function ensureProfileForUser(
   }
 
   if (existing) {
-    const existingRole = normalizeRole(existing.role);
+    return { ...existing, role: normalizeRole(existing.role) } as Profile;
+  }
 
-    if (existingRole !== requestedRole && existingRole !== "admin") {
-      const { data: updated, error: updateError } = await supabase
-        .from("profiles")
-        .update({ role: requestedRole })
-        .eq("id", existing.id)
-        .select("*")
-        .single();
+  const { data: existingByEmail, error: existingByEmailError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
 
-      if (updateError || !updated) {
-        throw updateError ?? new Error("Could not update profile role");
-      }
+  if (existingByEmailError) {
+    throw existingByEmailError;
+  }
 
-      if (requestedRole === "donor") {
-        await supabase.from("donor_profiles").upsert(
-          {
-            profile_id: updated.id,
-            status: "pending_verification",
-          },
-          { onConflict: "profile_id" },
-        );
-
-        await supabase.from("donor_verification_steps").upsert(
-          {
-            donor_profile_id: updated.id,
-            registered: true,
-            approval_outcome: "pending_verification",
-          },
-          { onConflict: "donor_profile_id" },
-        );
-      }
-
-      return { ...updated, role: normalizeRole(updated.role) } as Profile;
+  if (existingByEmail) {
+    if (
+      existingByEmail.auth_user_id &&
+      String(existingByEmail.auth_user_id) !== authUserId
+    ) {
+      throw new Error("Email is already linked to another account");
     }
 
-    return { ...existing, role: existingRole } as Profile;
+    const { data: linkedProfile, error: linkedProfileError } = await supabase
+      .from("profiles")
+      .update({
+        auth_user_id: authUserId,
+        full_name: existingByEmail.full_name || fullName,
+      })
+      .eq("id", existingByEmail.id)
+      .select("*")
+      .single();
+
+    if (linkedProfileError || !linkedProfile) {
+      throw linkedProfileError ?? new Error("Could not link existing profile");
+    }
+
+    if (normalizeRole(linkedProfile.role) === "donor") {
+      await supabase.from("donor_profiles").upsert(
+        {
+          profile_id: linkedProfile.id,
+          status: "pending_verification",
+        },
+        { onConflict: "profile_id" },
+      );
+
+      await supabase.from("donor_verification_steps").upsert(
+        {
+          donor_profile_id: linkedProfile.id,
+          registered: true,
+          approval_outcome: "pending_verification",
+        },
+        { onConflict: "donor_profile_id" },
+      );
+    }
+
+    return { ...linkedProfile, role: normalizeRole(linkedProfile.role) } as Profile;
   }
 
   const { data: inserted, error: insertError } = await supabase

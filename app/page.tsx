@@ -80,12 +80,7 @@ export default async function Home({
     }
   }
   if (user && fromDashboard) {
-    try {
-      const profile = await ensureProfileForUser(supabase, user);
-      roleHomePath = getRoleHomePath(profile.role);
-    } catch {
-      roleHomePath = "/onboarding";
-    }
+    roleHomePath = "/dashboard";
   }
 
   const [
@@ -266,7 +261,10 @@ export default async function Home({
       <AuthHomeRedirect />
       <section className="border-b bg-card">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-6">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
+          <Link
+            href={user ? "/?from=dashboard" : "/"}
+            className="flex items-center gap-2 text-lg font-semibold"
+          >
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Droplets className="h-4 w-4" />
             </span>

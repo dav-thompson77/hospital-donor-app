@@ -48,6 +48,7 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
   const userId = typeof user?.sub === "string" ? user.sub : null;
+  const userEmail = typeof user?.email === "string" ? user.email : null;
   const isProtectedPath =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/admin") ||
@@ -72,7 +73,27 @@ export async function updateSession(request: NextRequest) {
     .eq("auth_user_id", userId)
     .maybeSingle();
 
-  const role = profile?.role;
+  let role = profile?.role;
+
+  if (!role && userEmail) {
+    const { data: profileByEmail } = await supabase
+      .from("profiles")
+      .select("id, role, auth_user_id")
+      .eq("email", userEmail)
+      .maybeSingle();
+
+    if (profileByEmail?.id && !profileByEmail.auth_user_id) {
+      const { data: linkedProfile } = await supabase
+        .from("profiles")
+        .update({ auth_user_id: userId })
+        .eq("id", profileByEmail.id)
+        .select("role")
+        .maybeSingle();
+      role = linkedProfile?.role ?? profileByEmail.role;
+    } else if (profileByEmail?.auth_user_id === userId) {
+      role = profileByEmail.role;
+    }
+  }
 
   if (!role && pathname !== "/onboarding") {
     const url = request.nextUrl.clone();
