@@ -1,6 +1,7 @@
 import { bookDonorAppointmentAction } from "@/app/actions/donor";
 import { RealtimeRefresher } from "@/components/realtime/realtime-refresher";
 import { StatusBadge } from "@/components/status-badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
 import { requireRole } from "@/lib/auth";
 import { getBloodCentres } from "@/lib/data";
 import { formatDateTime } from "@/lib/utils";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 function centreNameFromJoin(
   centre: { name: string; parish: string } | Array<{ name: string; parish: string }> | null | undefined,
@@ -29,7 +31,12 @@ function centreNameFromJoin(
   return centre.name ?? "Unknown centre";
 }
 
-export default async function DonorAppointmentsPage() {
+export default async function DonorAppointmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; error?: string }>;
+}) {
+  const params = await searchParams;
   const { supabase, profile } = await requireRole(["donor", "admin"]);
 
   const [centresResult, appointmentsResult] = await Promise.all([
@@ -48,6 +55,23 @@ export default async function DonorAppointmentsPage() {
   return (
     <>
       <RealtimeRefresher donorProfileId={profile.id} />
+
+      {params.saved === "1" ? (
+        <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertTitle>Appointment submitted</AlertTitle>
+          <AlertDescription>
+            Your appointment request was saved successfully.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {params.error ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Could not save appointment</AlertTitle>
+          <AlertDescription>{params.error}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1.8fr]">
         <Card>

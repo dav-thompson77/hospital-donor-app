@@ -74,6 +74,28 @@ async function queryCenterOptions(supabase: SupabaseClient): Promise<CenterOptio
   return (data ?? []).filter((center) => center.is_active !== false);
 }
 
+async function queryCenterOptionsMinimal(
+  supabase: SupabaseClient,
+): Promise<CenterOption[]> {
+  const { data, error } = await supabase
+    .from("blood_centers")
+    .select("id, name, parish")
+    .order("name", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((center) => ({
+    id: Number(center.id),
+    name: center.name,
+    parish: center.parish,
+    address: null,
+    phone: null,
+    is_active: true,
+  }));
+}
+
 async function trySeedCentersViaRpc(supabase: SupabaseClient) {
   const { error } = await supabase.rpc("ensure_demo_blood_centers");
   // The RPC may not exist yet if migrations were not applied.
@@ -136,16 +158,35 @@ export async function getDonorDashboardData(
 }
 
 export async function getBloodCentres(supabase: SupabaseClient) {
-  let centers = await queryCenterOptions(supabase);
-  if (centers.length) {
-    return centers;
+  let centers: CenterOption[] = [];
+  try {
+    centers = await queryCenterOptions(supabase);
+    if (centers.length) {
+      return centers;
+    }
+  } catch {
+    try {
+      centers = await queryCenterOptionsMinimal(supabase);
+      if (centers.length) {
+        return centers;
+      }
+    } catch {
+      centers = [];
+    }
   }
 
   try {
     await trySeedCentersViaRpc(supabase);
-    centers = await queryCenterOptions(supabase);
-    if (centers.length) {
-      return centers;
+    try {
+      centers = await queryCenterOptions(supabase);
+      if (centers.length) {
+        return centers;
+      }
+    } catch {
+      centers = await queryCenterOptionsMinimal(supabase);
+      if (centers.length) {
+        return centers;
+      }
     }
   } catch {
     // Swallow and return empty list if the RPC is unavailable.

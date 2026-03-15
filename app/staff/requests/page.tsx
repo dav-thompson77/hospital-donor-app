@@ -27,7 +27,22 @@ function centreNameFromJoin(
   return centre.name ?? "Unknown centre";
 }
 
-export default async function StaffBloodRequestsPage() {
+function normalizeSuggestionList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value.trim()];
+  }
+  return [];
+}
+
+export default async function StaffBloodRequestsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; error?: string }>;
+}) {
+  const params = await searchParams;
   const { supabase } = await requireRole(["blood_bank_staff", "admin"]);
 
   const [centresResult, requestsResult] = await Promise.all([
@@ -44,6 +59,24 @@ export default async function StaffBloodRequestsPage() {
 
   return (
     <div className="space-y-6">
+      {params.saved === "1" ? (
+        <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <Sparkles className="h-4 w-4" />
+          <AlertTitle>Blood request created</AlertTitle>
+          <AlertDescription>
+            Request saved successfully with outreach suggestions.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {params.error ? (
+        <Alert variant="destructive">
+          <Wand2 className="h-4 w-4" />
+          <AlertTitle>Could not create request</AlertTitle>
+          <AlertDescription>{params.error}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <Alert className="border-primary/20 bg-accent/45">
         <Wand2 className="h-4 w-4 text-primary" />
         <AlertTitle>AI outreach assistant (demo-ready)</AlertTitle>
@@ -146,8 +179,12 @@ export default async function StaffBloodRequestsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {requests.length ? (
-            requests.map((request) => (
-              <div key={request.id} className="rounded-lg border p-4">
+            requests.map((request) => {
+              const suggestions = normalizeSuggestionList(
+                request.ai_message_suggestions,
+              );
+              return (
+                <div key={request.id} className="rounded-lg border p-4">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold">
                     Request #{request.id} • {request.blood_type_needed} •{" "}
@@ -171,10 +208,10 @@ export default async function StaffBloodRequestsPage() {
                       3 templates ready
                     </Badge>
                   </div>
-                  {(request.ai_message_suggestions as string[] | null)?.length ? (
+                  {suggestions.length ? (
                     <AiSuggestionList
                       requestId={request.id}
-                      suggestions={request.ai_message_suggestions as string[]}
+                      suggestions={suggestions}
                       bloodType={request.blood_type_needed}
                       urgency={request.urgency as "low" | "medium" | "high" | "critical"}
                       requiredBy={request.required_by}
@@ -185,8 +222,9 @@ export default async function StaffBloodRequestsPage() {
                     <p className="text-sm text-muted-foreground">No suggestions stored.</p>
                   )}
                 </div>
-              </div>
-            ))
+                </div>
+              );
+            })
           ) : (
             <p className="text-sm text-muted-foreground">No blood requests yet.</p>
           )}

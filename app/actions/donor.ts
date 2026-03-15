@@ -79,10 +79,10 @@ export async function bookDonorAppointmentAction(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim();
 
   if (!Number.isFinite(centreId) || !APPOINTMENT_TYPES.includes(appointmentType as AppointmentType) || !scheduledAt) {
-    return;
+    redirect("/donor/appointments?error=Please%20complete%20all%20required%20appointment%20fields");
   }
 
-  await supabase.from("appointments").insert({
+  const { error } = await supabase.from("appointments").insert({
     donor_profile_id: profile.id,
     created_by_profile_id: profile.id,
     center_id: centreId,
@@ -92,8 +92,13 @@ export async function bookDonorAppointmentAction(formData: FormData) {
     notes: notes || null,
   });
 
+  if (error) {
+    redirect(`/donor/appointments?error=${encodeURIComponent(error.message)}`);
+  }
+
   revalidatePath("/donor");
   revalidatePath("/donor/appointments");
+  redirect("/donor/appointments?saved=1");
 }
 
 export async function respondToAlertAction(formData: FormData) {

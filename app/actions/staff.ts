@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { generateOpenRouterOutreachSuggestions } from "@/lib/ai/openrouter";
+import { redirect } from "next/navigation";
 import type { AppointmentStatus, AppointmentType, DonorStatus, UrgencyLevel } from "@/lib/types";
 
 const APPOINTMENT_TYPES: AppointmentType[] = ["blood_typing", "screening", "donation"];
@@ -30,10 +31,10 @@ export async function createBloodRequestAction(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim();
 
   if (!bloodTypeNeeded || !Number.isFinite(centreId) || !requiredBy) {
-    return;
+    redirect("/staff/requests?error=Please%20complete%20all%20required%20fields");
   }
   if (!URGENCY_LEVELS.includes(urgency as UrgencyLevel)) {
-    return;
+    redirect("/staff/requests?error=Invalid%20urgency%20value");
   }
 
   const { data: centre } = await supabase
@@ -63,7 +64,7 @@ export async function createBloodRequestAction(formData: FormData) {
 
   const suggestions = outreachResult.suggestions;
 
-  await supabase.from("blood_requests").insert({
+  const { error: insertError } = await supabase.from("blood_requests").insert({
     created_by_profile_id: profile.id,
     blood_type_needed: bloodTypeNeeded,
     urgency,
@@ -74,8 +75,13 @@ export async function createBloodRequestAction(formData: FormData) {
     status: "active",
   });
 
+  if (insertError) {
+    redirect(`/staff/requests?error=${encodeURIComponent(insertError.message)}`);
+  }
+
   revalidatePath("/staff");
   revalidatePath("/staff/requests");
+  redirect("/staff/requests?saved=1");
 }
 
 export async function createStaffAppointmentAction(formData: FormData) {
