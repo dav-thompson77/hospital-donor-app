@@ -548,13 +548,13 @@ export default async function Home({
                 eligibility decisions remain with qualified clinical teams.
               </AlertDescription>
             </Alert>
-            <div className="overflow-hidden rounded-lg border bg-background">
+            <div className="overflow-hidden rounded-xl border-2 border-primary/30 bg-background shadow-lg shadow-primary/10">
               <Image
                 src="/images/dono-real-life.jpg"
                 alt="Blood Bridge clinical safety coordination illustration"
                 width={1200}
                 height={700}
-                className="h-auto w-full"
+                className="float-slow h-auto w-full transition-transform duration-700 hover:scale-[1.02]"
                 priority
               />
               <p className="border-t px-3 py-2 text-xs text-muted-foreground">

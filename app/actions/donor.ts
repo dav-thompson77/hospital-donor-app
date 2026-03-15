@@ -129,19 +129,6 @@ export async function respondToAlertAction(formData: FormData) {
     redirect(`/donor/alerts?error=${encodeURIComponent(responseError.message)}`);
   }
 
-  if (response === "booked") {
-    const { error: notificationError } = await supabase.from("notifications").insert({
-      recipient_profile_id: profile.id,
-      source_type: "alert_response",
-      source_id: alertId,
-      title: "Response received",
-      body: "Your booked response was submitted. Staff will confirm your slot.",
-    });
-    if (notificationError) {
-      redirect(`/donor/alerts?error=${encodeURIComponent(notificationError.message)}`);
-    }
-  }
-
   revalidatePath("/donor");
   revalidatePath("/donor/alerts");
   revalidatePath("/staff");
