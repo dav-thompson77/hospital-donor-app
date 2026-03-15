@@ -15,7 +15,7 @@ interface OutreachInput {
 function urgencyPrefix(urgency: UrgencyLevel) {
   switch (urgency) {
     case "critical":
-      return "Urgent support needed";
+      return "Urgent hospital support needed";
     case "high":
       return "High-priority blood request";
     case "medium":
@@ -50,16 +50,16 @@ export function generateOutreachSuggestions(input: OutreachInput) {
   const note = input.customNote ? `Note from staff: ${input.customNote}` : "";
 
   return [
-    `Hi ${input.donorName}, ${base} ${statusLine(input.donorStatus)} ${lastDonationLine} Reply in Blood Bridge if you are interested.`,
+    `Good day ${input.donorName}, ${base} ${statusLine(input.donorStatus)} ${lastDonationLine} Please reply in Blood Bridge if you are available.`,
     `Hello ${input.donorName}, we are coordinating a ${
       input.urgency
     } request for ${input.bloodType ?? "blood donors"} at ${
       input.centreName
-    }. ${statusLine(input.donorStatus)} ${note}`.trim(),
+    } in Jamaica. ${statusLine(input.donorStatus)} ${note}`.trim(),
     `Blood Bridge update: ${
       input.bloodType ?? "donors"
     } needed at ${input.centreName}. Required by ${formatDate(
       input.requiredBy,
-    )}. ${lastDonationLine} Please mark Interested, Booked, or Unavailable in your dashboard.`,
+    )}. ${lastDonationLine} Please mark Interested, Booked, or Unavailable in your dashboard so hospital staff can plan safely.`,
   ];
 }

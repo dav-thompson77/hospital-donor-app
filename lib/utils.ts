@@ -20,7 +20,7 @@ export function formatDate(value: string | Date | null | undefined) {
     return "Invalid date";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-JM", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -37,7 +37,7 @@ export function formatDateTime(value: string | Date | null | undefined) {
     return "Invalid date";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-JM", {
     year: "numeric",
     month: "short",
     day: "numeric",
