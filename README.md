@@ -78,7 +78,7 @@ Blood Bridge provides one coordinated workflow for donor onboarding, staff reque
 - Alert sending (single donor or broadcast by blood-type match)
 - Real-time response tracking
 
-### AI-assisted outreach (demo-safe)
+### AI-assisted outreach
 
 - OpenRouter-backed server route (`POST /api/ai/outreach`) generates outreach variants using server-side secrets.
 - If OpenRouter is unavailable, the app automatically falls back to rule-based templates.
