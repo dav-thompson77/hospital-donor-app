@@ -552,8 +552,10 @@ export default async function Home({
               <Image
                 src="/images/dono-real-life.jpg"
                 alt="Blood Bridge clinical safety coordination illustration"
-                width={1200}
-                height={700}
+                width={3840}
+                height={2160}
+                sizes="(max-width: 768px) 100vw, 1200px"
+                quality={95}
                 className="float-slow h-auto w-full transition-transform duration-700 hover:scale-[1.02]"
                 priority
               />
