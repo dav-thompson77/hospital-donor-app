@@ -1,53 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
-import { ensureProfileForUser } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { runAIMonitor } from "@/lib/ai/monitor";
-import type { MonitorRunResult } from "@/lib/ai/monitor";
-
-export interface MonitorActionState {
-  status: "idle" | "success" | "error";
-  message: string | null;
-  result: MonitorRunResult | null;
-}
-
-export const initialMonitorActionState: MonitorActionState = {
-  status: "idle",
-  message: null,
-  result: null,
-};
+import type { MonitorActionState } from "@/app/actions/monitor-types";
 
 export async function triggerAIMonitorNowAction(
   _previousState: MonitorActionState,
   _formData: FormData,
 ): Promise<MonitorActionState> {
-  void _previousState;
-  void _formData;
-
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    void _previousState;
+    void _formData;
 
-    if (authError || !user) {
-      return {
-        status: "error",
-        message: "You must be signed in as blood bank staff to run the monitor.",
-        result: null,
-      };
-    }
-
-    const profile = await ensureProfileForUser(supabase, user);
-    if (profile.role !== "blood_bank_staff" && profile.role !== "admin") {
-      return {
-        status: "error",
-        message: "Only blood bank staff can run the AI monitor.",
-        result: null,
-      };
-    }
+    const { supabase, profile } = await requireRole(["blood_bank_staff", "admin"]);
 
     const result = await runAIMonitor(supabase, { sentByProfileId: profile.id });
 
@@ -81,17 +47,9 @@ export async function triggerAIMonitorNowAction(
       };
     }
 
-    if (result.alertsCreated > 0) {
-      return {
-        status: "success",
-        message: `Monitor ran successfully and created ${result.alertsCreated} donor alert(s).`,
-        result,
-      };
-    }
-
     return {
       status: "success",
-      message: "Monitor run completed.",
+      message: `Monitor ran successfully and created ${result.alertsCreated} donor alert(s).`,
       result,
     };
   } catch (error) {

@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No staff profile found" }, { status: 500 });
   }
 
-  const result = await runAIMonitor(supabase, staffProfile.id);
+  const result = await runAIMonitor(supabase, { sentByProfileId: staffProfile.id });
 
   return NextResponse.json({ success: true, result });
 }

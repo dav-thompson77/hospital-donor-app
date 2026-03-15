@@ -92,6 +92,10 @@ export async function runAIMonitor(
   supabase: SupabaseClient,
   input: MonitorRunInput,
 ): Promise<MonitorRunResult> {
+  if (!input.sentByProfileId) {
+    throw new Error("Monitor sender profile is missing.");
+  }
+
   const requestQuery = supabase
     .from("blood_requests")
     .select("id, blood_type_needed, urgency, required_by, center_id, note, blood_centers(name)")

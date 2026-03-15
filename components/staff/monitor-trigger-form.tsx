@@ -2,10 +2,8 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import {
-  initialMonitorActionState,
-  triggerAIMonitorNowAction,
-} from "@/app/actions/monitor";
+import { initialMonitorActionState } from "@/app/actions/monitor-types";
+import { triggerAIMonitorNowAction } from "@/app/actions/monitor";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Sparkles, TriangleAlert } from "lucide-react";
