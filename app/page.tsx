@@ -359,7 +359,7 @@ export default async function Home({
             </Alert>
             <div className="overflow-hidden rounded-lg border bg-background">
               <Image
-                src="/images/blood-donation-chair.jpg"
+                src="/images/real-life-dono.jpg"
                 alt="Blood Bridge clinical safety coordination illustration"
                 width={1200}
                 height={700}
