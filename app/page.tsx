@@ -18,6 +18,7 @@ import {
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { StatusBadge } from "@/components/status-badge";
 import { AuthHomeRedirect } from "@/components/auth-home-redirect";
+import { ImpactNetwork } from "@/components/landing/impact-network";
 import { ensureProfileForUser, getRoleHomePath } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
@@ -33,7 +34,6 @@ import {
   ChevronDown,
   ArrowRight,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -548,23 +548,7 @@ export default async function Home({
                 eligibility decisions remain with qualified clinical teams.
               </AlertDescription>
             </Alert>
-            <div className="overflow-hidden rounded-xl border-2 border-primary/30 bg-background shadow-lg shadow-primary/10">
-              <Image
-                src="/images/dono-real-life.jpg"
-                alt="Blood Bridge clinical safety coordination illustration"
-                width={3840}
-                height={2160}
-                sizes="(max-width: 768px) 100vw, 1200px"
-                quality={95}
-                className="float-slow h-auto w-full transition-transform duration-700 hover:scale-[1.02]"
-                priority
-              />
-              <p className="border-t px-3 py-2 text-xs text-muted-foreground">
-                Blood Bridge supports safer donor coordination by 
-                helping blood services manage screening, approval, 
-                and appointment readiness in one place.
-              </p>
-            </div>
+            <ImpactNetwork />
           </CardContent>
         </Card>
       </section>
