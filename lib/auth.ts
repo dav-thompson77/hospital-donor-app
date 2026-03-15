@@ -24,6 +24,26 @@ export async function ensureProfileForUser(
     (typeof user.user_metadata?.full_name === "string" &&
       user.user_metadata.full_name.trim()) ||
     email.split("@")[0];
+  const donorPhone =
+    typeof user.user_metadata?.phone === "string" &&
+    user.user_metadata.phone.trim().length
+      ? user.user_metadata.phone.trim()
+      : null;
+  const staffIdNumber =
+    typeof user.user_metadata?.staff_id_number === "string" &&
+    user.user_metadata.staff_id_number.trim().length
+      ? user.user_metadata.staff_id_number.trim()
+      : null;
+  const staffFacility =
+    typeof user.user_metadata?.staff_facility === "string" &&
+    user.user_metadata.staff_facility.trim().length
+      ? user.user_metadata.staff_facility.trim()
+      : null;
+  const staffWorkPhone =
+    typeof user.user_metadata?.staff_work_phone === "string" &&
+    user.user_metadata.staff_work_phone.trim().length
+      ? user.user_metadata.staff_work_phone.trim()
+      : null;
 
   const { data: existing, error: existingError } = await supabase
     .from("profiles")
@@ -100,6 +120,10 @@ export async function ensureProfileForUser(
       email,
       full_name: fullName,
       role: requestedRole,
+      phone: requestedRole === "donor" ? donorPhone : null,
+      staff_id_number: requestedRole === "blood_bank_staff" ? staffIdNumber : null,
+      staff_facility: requestedRole === "blood_bank_staff" ? staffFacility : null,
+      staff_work_phone: requestedRole === "blood_bank_staff" ? staffWorkPhone : null,
     })
     .select("*")
     .single();

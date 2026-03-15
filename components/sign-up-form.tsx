@@ -23,8 +23,14 @@ export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div"> & { role?: UserRole }) {
+  const isStaffRole = role === "blood_bank_staff";
+  const isDonorRole = role === "donor";
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [staffIdNumber, setStaffIdNumber] = useState("");
+  const [staffFacility, setStaffFacility] = useState("");
+  const [staffWorkPhone, setStaffWorkPhone] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +49,18 @@ export function SignUpForm({
       return;
     }
 
+    if (isDonorRole && !phone.trim()) {
+      setError("Phone number is required for donor sign up");
+      setIsLoading(false);
+      return;
+    }
+
+    if (isStaffRole && (!staffIdNumber.trim() || !staffFacility.trim())) {
+      setError("Staff ID number and blood bank / facility are required");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -52,6 +70,10 @@ export function SignUpForm({
           data: {
             full_name: fullName,
             role,
+            phone: isDonorRole ? phone.trim() : null,
+            staff_id_number: isStaffRole ? staffIdNumber.trim() : null,
+            staff_facility: isStaffRole ? staffFacility.trim() : null,
+            staff_work_phone: isStaffRole ? (staffWorkPhone.trim() || null) : null,
           },
         },
       });
@@ -108,6 +130,55 @@ export function SignUpForm({
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
+              {isDonorRole ? (
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Phone number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+1-876-555-0000"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+              ) : null}
+              {isStaffRole ? (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="staff-id-number">Staff ID number</Label>
+                    <Input
+                      id="staff-id-number"
+                      type="text"
+                      placeholder="BB-STAFF-001"
+                      required
+                      value={staffIdNumber}
+                      onChange={(e) => setStaffIdNumber(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="staff-facility">Blood bank / facility</Label>
+                    <Input
+                      id="staff-facility"
+                      type="text"
+                      placeholder="National Blood Transfusion Service"
+                      required
+                      value={staffFacility}
+                      onChange={(e) => setStaffFacility(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="staff-work-phone">Work phone number (optional)</Label>
+                    <Input
+                      id="staff-work-phone"
+                      type="tel"
+                      placeholder="+1-876-555-1000"
+                      value={staffWorkPhone}
+                      onChange={(e) => setStaffWorkPhone(e.target.value)}
+                    />
+                  </div>
+                </>
+              ) : null}
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>

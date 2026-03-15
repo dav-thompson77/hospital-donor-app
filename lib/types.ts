@@ -19,6 +19,9 @@ export interface Profile {
   email: string;
   phone: string | null;
   parish: string | null;
+  staff_id_number?: string | null;
+  staff_facility?: string | null;
+  staff_work_phone?: string | null;
   created_at: string;
   updated_at: string;
 }

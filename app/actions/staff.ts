@@ -530,3 +530,54 @@ export async function sendAlertAction(formData: FormData) {
   revalidatePath("/donor/alerts");
   revalidatePath("/donor");
 }
+
+export async function deleteAlertAction(formData: FormData) {
+  const { supabase, profile } = await requireRole(["blood_bank_staff", "admin"]);
+  const alertId = Number(formData.get("alert_id"));
+
+  if (!Number.isFinite(alertId)) {
+    redirect("/staff/alerts?error=Invalid%20alert%20selection");
+  }
+
+  const { data: alert, error: alertLookupError } = await supabase
+    .from("donor_alerts")
+    .select("id, sent_by_profile_id")
+    .eq("id", alertId)
+    .maybeSingle();
+
+  if (alertLookupError) {
+    redirect(`/staff/alerts?error=${encodeURIComponent(alertLookupError.message)}`);
+  }
+
+  if (!alert) {
+    redirect("/staff/alerts?error=Alert%20not%20found");
+  }
+
+  if (profile.role === "blood_bank_staff" && alert.sent_by_profile_id !== profile.id) {
+    redirect("/staff/alerts?error=You%20can%20only%20delete%20alerts%20you%20sent");
+  }
+
+  const { error: notificationsDeleteError } = await supabase
+    .from("notifications")
+    .delete()
+    .eq("source_type", "alert")
+    .eq("source_id", alertId);
+
+  if (notificationsDeleteError) {
+    redirect(`/staff/alerts?error=${encodeURIComponent(notificationsDeleteError.message)}`);
+  }
+
+  const { error: deleteAlertError } = await supabase
+    .from("donor_alerts")
+    .delete()
+    .eq("id", alertId);
+
+  if (deleteAlertError) {
+    redirect(`/staff/alerts?error=${encodeURIComponent(deleteAlertError.message)}`);
+  }
+
+  revalidatePath("/staff/alerts");
+  revalidatePath("/donor/alerts");
+  revalidatePath("/donor");
+  redirect("/staff/alerts?deleted=1");
+}

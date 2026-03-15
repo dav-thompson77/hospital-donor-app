@@ -1,12 +1,15 @@
-import { sendAlertAction } from "@/app/actions/staff";
+import { deleteAlertAction, sendAlertAction } from "@/app/actions/staff";
+import { DeleteAlertSubmitButton } from "@/components/staff/delete-alert-submit-button";
 import { RealtimeRefresher } from "@/components/realtime/realtime-refresher";
 import { StatusBadge } from "@/components/status-badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/utils";
+import { CheckCircle2, TriangleAlert } from "lucide-react";
 
 function getNameFromJoin(
   profiles:
@@ -24,7 +27,14 @@ function getNameFromJoin(
   return profiles.full_name ?? "Unknown donor";
 }
 
-export default async function StaffAlertsPage() {
+export default async function StaffAlertsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ deleted?: string; error?: string }>;
+}) {
+  const params = await searchParams;
+  const deleted = params.deleted === "1";
+  const errorMessage = params.error;
   const { supabase } = await requireRole(["blood_bank_staff", "admin"]);
 
   const [requestsResult, donorsResult, alertsResult, responsesResult] = await Promise.all([
@@ -67,6 +77,22 @@ export default async function StaffAlertsPage() {
   return (
     <>
       <RealtimeRefresher watchStaffResponses />
+
+      {deleted ? (
+        <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertTitle>Alert deleted</AlertTitle>
+          <AlertDescription>The alert was removed successfully.</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {errorMessage ? (
+        <Alert variant="destructive">
+          <TriangleAlert className="h-4 w-4" />
+          <AlertTitle>Could not delete alert</AlertTitle>
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -143,7 +169,13 @@ export default async function StaffAlertsPage() {
                 <div key={alert.id} className="rounded-lg border p-4">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <p className="font-semibold">{alert.message}</p>
-                    <StatusBadge status={request?.urgency ?? "medium"} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={request?.urgency ?? "medium"} />
+                      <form action={deleteAlertAction}>
+                        <input type="hidden" name="alert_id" value={alert.id} />
+                        <DeleteAlertSubmitButton />
+                      </form>
+                    </div>
                   </div>
                   <p className="mb-3 text-xs text-muted-foreground">
                     To {getNameFromJoin(donorProfile?.profiles)} • Sent {formatDateTime(alert.created_at)}
