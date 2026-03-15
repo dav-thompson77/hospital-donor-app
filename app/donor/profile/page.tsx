@@ -10,6 +10,17 @@ import { BLOOD_TYPES } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { AlertTriangle } from "lucide-react";
 
+const DONATION_ELIGIBILITY_WINDOW_DAYS = 56;
+
+function addDays(value: string, days: number) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
 export default async function DonorProfilePage({
   searchParams,
 }: {
@@ -18,11 +29,28 @@ export default async function DonorProfilePage({
   const params = await searchParams;
   const error = params.error;
   const { supabase, profile } = await requireRole(["donor", "admin"]);
-  const { data: donorProfile } = await supabase
-    .from("donor_profiles")
-    .select("*")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
+  const [{ data: donorProfile }, { data: latestCompletedDonation }] = await Promise.all([
+    supabase.from("donor_profiles").select("*").eq("profile_id", profile.id).maybeSingle(),
+    supabase
+      .from("appointments")
+      .select("scheduled_at")
+      .eq("donor_profile_id", profile.id)
+      .eq("appointment_type", "donation")
+      .eq("status", "completed")
+      .order("scheduled_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const lastCompletedDonationDate = latestCompletedDonation?.scheduled_at ?? null;
+  const nextEligibleDonationDate = lastCompletedDonationDate
+    ? addDays(lastCompletedDonationDate, DONATION_ELIGIBILITY_WINDOW_DAYS)
+    : null;
+  const eligibilityLabel = !lastCompletedDonationDate
+    ? "Complete your first donation to set eligibility."
+    : new Date(nextEligibleDonationDate ?? "").getTime() > Date.now()
+      ? "Not yet eligible (8-week recovery window)."
+      : "Eligible again.";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -116,12 +144,13 @@ export default async function DonorProfilePage({
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Last donation</span>
-            <span className="text-sm">{formatDate(donorProfile?.last_donation_date)}</span>
+            <span className="text-sm">{formatDate(lastCompletedDonationDate)}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Next eligible</span>
-            <span className="text-sm">{formatDate(donorProfile?.next_eligible_donation_date)}</span>
+            <span className="text-sm">{formatDate(nextEligibleDonationDate)}</span>
           </div>
+          <p className="text-xs text-muted-foreground">{eligibilityLabel}</p>
           <p className="rounded-md bg-accent p-3 text-xs">
             Blood Bridge does not replace clinical screening. Final approval is managed by blood bank clinicians.
           </p>

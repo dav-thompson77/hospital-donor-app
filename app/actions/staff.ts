@@ -64,6 +64,25 @@ function isLikelyDemoPhone(value: string) {
   return digits.includes("555");
 }
 
+const DONATION_ELIGIBILITY_WINDOW_DAYS = 56;
+
+function toIsoDate(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+function addDaysIsoDate(isoDate: string, days: number) {
+  const base = new Date(`${isoDate}T00:00:00.000Z`);
+  if (Number.isNaN(base.getTime())) {
+    return null;
+  }
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString().slice(0, 10);
+}
+
 export async function createBloodRequestAction(formData: FormData) {
   const { supabase, profile } = await requireRole(["blood_bank_staff", "admin"]);
 
@@ -313,9 +332,88 @@ export async function updateAppointmentStatusAction(formData: FormData) {
     return;
   }
 
+  const { data: appointment } = await supabase
+    .from("appointments")
+    .select(
+      "id, donor_profile_id, center_id, blood_request_id, appointment_type, status, scheduled_at, notes",
+    )
+    .eq("id", appointmentId)
+    .maybeSingle();
+
+  if (!appointment) {
+    return;
+  }
+
   await supabase.from("appointments").update({ status }).eq("id", appointmentId);
+
+  if (appointment.appointment_type === "donation" && status === "completed") {
+    const [{ data: donorProfile }, { data: request }] = await Promise.all([
+      supabase
+        .from("donor_profiles")
+        .select("blood_type")
+        .eq("profile_id", appointment.donor_profile_id)
+        .maybeSingle(),
+      appointment.blood_request_id
+        ? supabase
+            .from("blood_requests")
+            .select("blood_type_needed")
+            .eq("id", appointment.blood_request_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    const donationBloodType = donorProfile?.blood_type ?? request?.blood_type_needed ?? null;
+    if (donationBloodType) {
+      await supabase.from("donation_history").upsert(
+        {
+          donor_profile_id: appointment.donor_profile_id,
+          center_id: appointment.center_id,
+          appointment_id: appointment.id,
+          donated_at: appointment.scheduled_at,
+          blood_type: donationBloodType,
+          notes: appointment.notes || null,
+        },
+        { onConflict: "appointment_id" },
+      );
+    }
+  }
+
+  if (appointment.appointment_type === "donation") {
+    if (appointment.status === "completed" && status !== "completed") {
+      await supabase.from("donation_history").delete().eq("appointment_id", appointment.id);
+    }
+
+    const { data: latestCompletedDonation } = await supabase
+      .from("appointments")
+      .select("scheduled_at")
+      .eq("donor_profile_id", appointment.donor_profile_id)
+      .eq("appointment_type", "donation")
+      .eq("status", "completed")
+      .order("scheduled_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const lastDonationDate = latestCompletedDonation?.scheduled_at
+      ? toIsoDate(latestCompletedDonation.scheduled_at)
+      : null;
+    const nextEligibleDate = lastDonationDate
+      ? addDaysIsoDate(lastDonationDate, DONATION_ELIGIBILITY_WINDOW_DAYS)
+      : null;
+
+    await supabase
+      .from("donor_profiles")
+      .update({
+        last_donation_date: lastDonationDate,
+        next_eligible_donation_date: nextEligibleDate,
+      })
+      .eq("profile_id", appointment.donor_profile_id);
+  }
+
   revalidatePath("/staff/appointments");
   revalidatePath("/donor/appointments");
+  revalidatePath("/donor");
+  revalidatePath("/donor/donations");
+  revalidatePath("/donor/profile");
 }
 
 export async function updateDonorWorkflowAction(formData: FormData) {
