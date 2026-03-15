@@ -1,12 +1,23 @@
 # Blood Bridge MVP
 
-Blood Bridge is a real-time donor coordination platform built with:
+Blood Bridge is a real-time donor coordination platform built to help blood bank teams find, verify, schedule, and re-engage eligible donors while guiding donors through official screening and donation workflows.
+
+## Tech stack used
 
 - **Next.js** (frontend + server actions)
 - **Supabase** (Postgres, Auth, Realtime, RLS)
 - **Vercel** (deployment)
 
-It helps blood bank teams find, verify, schedule, and re-engage eligible donors while guiding donors through official screening and donation workflows.
+## Problem, Impact & Solution
+
+### Problem
+Blood banks and blood services need to quickly identify and reach eligible donors during urgent blood needs, but coordination is often manual and slow.
+
+### Impact
+Delays in donor coordination can affect response times for urgent care, increase staff workload, and reduce efficiency of blood collection operations.
+
+### Solution
+Blood Bridge provides one coordinated workflow for donor onboarding, staff request management, realtime alerts/responses, and appointment scheduling.
 
 > Clinical rule: this app supports the donation process and does **not** replace clinical screening or medical decision-making.
 
@@ -151,7 +162,7 @@ Includes:
   - `donor_alerts`
   - `donor_alert_responses`
   - `notifications`
-- indexes and updated_at triggers
+- indexes and `updated_at` triggers
 - new-user trigger from `auth.users` to create profile + donor rows
 - row level security policies for donor/staff/admin access controls
 
