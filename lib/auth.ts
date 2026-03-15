@@ -19,6 +19,7 @@ export async function ensureProfileForUser(
 ) {
   const authUserId = user.id;
   const email = user.email ?? "unknown@bloodbridge.app";
+  const requestedRole = normalizeRole(user.user_metadata?.role);
   const fullName =
     (typeof user.user_metadata?.full_name === "string" &&
       user.user_metadata.full_name.trim()) ||
@@ -35,7 +36,43 @@ export async function ensureProfileForUser(
   }
 
   if (existing) {
-    return { ...existing, role: normalizeRole(existing.role) } as Profile;
+    const existingRole = normalizeRole(existing.role);
+
+    if (existingRole !== requestedRole && existingRole !== "admin") {
+      const { data: updated, error: updateError } = await supabase
+        .from("profiles")
+        .update({ role: requestedRole })
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+
+      if (updateError || !updated) {
+        throw updateError ?? new Error("Could not update profile role");
+      }
+
+      if (requestedRole === "donor") {
+        await supabase.from("donor_profiles").upsert(
+          {
+            profile_id: updated.id,
+            status: "pending_verification",
+          },
+          { onConflict: "profile_id" },
+        );
+
+        await supabase.from("donor_verification_steps").upsert(
+          {
+            donor_profile_id: updated.id,
+            registered: true,
+            approval_outcome: "pending_verification",
+          },
+          { onConflict: "donor_profile_id" },
+        );
+      }
+
+      return { ...updated, role: normalizeRole(updated.role) } as Profile;
+    }
+
+    return { ...existing, role: existingRole } as Profile;
   }
 
   const { data: inserted, error: insertError } = await supabase
@@ -44,7 +81,7 @@ export async function ensureProfileForUser(
       auth_user_id: authUserId,
       email,
       full_name: fullName,
-      role: "donor",
+      role: requestedRole,
     })
     .select("*")
     .single();
@@ -53,23 +90,25 @@ export async function ensureProfileForUser(
     throw insertError ?? new Error("Could not create profile");
   }
 
-  // Ensure donor companion rows exist for first-time donor accounts.
-  await supabase.from("donor_profiles").upsert(
-    {
-      profile_id: inserted.id,
-      status: "pending_verification",
-    },
-    { onConflict: "profile_id" },
-  );
+  if (requestedRole === "donor") {
+    // Ensure donor companion rows exist for first-time donor accounts.
+    await supabase.from("donor_profiles").upsert(
+      {
+        profile_id: inserted.id,
+        status: "pending_verification",
+      },
+      { onConflict: "profile_id" },
+    );
 
-  await supabase.from("donor_verification_steps").upsert(
-    {
-      donor_profile_id: inserted.id,
-      registered: true,
-      approval_outcome: "pending_verification",
-    },
-    { onConflict: "donor_profile_id" },
-  );
+    await supabase.from("donor_verification_steps").upsert(
+      {
+        donor_profile_id: inserted.id,
+        registered: true,
+        approval_outcome: "pending_verification",
+      },
+      { onConflict: "donor_profile_id" },
+    );
+  }
 
   return { ...inserted, role: normalizeRole(inserted.role) } as Profile;
 }

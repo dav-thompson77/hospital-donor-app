@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import type { AlertResponseStatus, AppointmentType, DonorStatus } from "@/lib/types";
 
 const APPOINTMENT_TYPES: AppointmentType[] = ["blood_typing", "screening", "donation"];
@@ -28,36 +29,59 @@ export async function updateDonorProfileAction(formData: FormData) {
   const dateOfBirth = String(formData.get("date_of_birth") ?? "").trim();
   const emergencyContact = String(formData.get("emergency_contact") ?? "").trim();
 
-  await supabase
-    .from("profiles")
-    .update({
-      full_name: fullName || profile.full_name,
-      phone: phone || null,
-      parish: parish || null,
-    })
-    .eq("id", profile.id);
+  try {
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        full_name: fullName || profile.full_name,
+        phone: phone || null,
+        parish: parish || null,
+      })
+      .eq("id", profile.id);
 
-  await supabase.from("donor_profiles").upsert(
-    {
-      profile_id: profile.id,
-      blood_type: bloodType || null,
-      date_of_birth: dateOfBirth || null,
-      emergency_contact: emergencyContact || null,
-    },
-    { onConflict: "profile_id" },
-  );
+    if (profileError) {
+      throw profileError;
+    }
 
-  await supabase.from("donor_verification_steps").upsert(
-    {
-      donor_profile_id: profile.id,
-      registered: true,
-      approval_outcome: "pending_verification",
-    },
-    { onConflict: "donor_profile_id" },
-  );
+    const { error: donorProfileError } = await supabase.from("donor_profiles").upsert(
+      {
+        profile_id: profile.id,
+        blood_type: bloodType || null,
+        date_of_birth: dateOfBirth || null,
+        emergency_contact: emergencyContact || null,
+      },
+      { onConflict: "profile_id" },
+    );
+
+    if (donorProfileError) {
+      throw donorProfileError;
+    }
+
+    const { error: stepsError } = await supabase
+      .from("donor_verification_steps")
+      .upsert(
+        {
+          donor_profile_id: profile.id,
+          registered: true,
+          approval_outcome: "pending_verification",
+        },
+        { onConflict: "donor_profile_id" },
+      );
+
+    if (stepsError) {
+      throw stepsError;
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Profile could not be saved. Please try again.";
+    redirect(`/donor/profile?error=${encodeURIComponent(message)}`);
+  }
 
   revalidatePath("/donor");
   revalidatePath("/donor/profile");
+  redirect("/donor?profileUpdated=1");
 }
 
 export async function bookDonorAppointmentAction(formData: FormData) {

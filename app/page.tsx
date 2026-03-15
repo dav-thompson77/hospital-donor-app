@@ -9,9 +9,16 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { StatusBadge } from "@/components/status-badge";
 import { AuthHomeRedirect } from "@/components/auth-home-redirect";
+import { ensureProfileForUser, getRoleHomePath } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 import {
@@ -22,7 +29,9 @@ import {
   HeartPulse,
   ShieldCheck,
   Users,
+  ChevronDown,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -56,6 +65,15 @@ export default async function Home({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user) {
+    try {
+      const profile = await ensureProfileForUser(supabase, user);
+      redirect(getRoleHomePath(profile.role));
+    } catch {
+      redirect("/onboarding");
+    }
+  }
 
   const [
     centresCountResult,
@@ -105,20 +123,12 @@ export default async function Home({
           </Link>
           <div className="flex items-center gap-2">
             <ThemeSwitcher />
-            {user ? (
-              <Button asChild>
-                <Link href="/dashboard">Open dashboard</Link>
-              </Button>
-            ) : (
-              <>
-                <Button asChild variant="outline">
-                  <Link href="/auth/login">Login</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/auth/sign-up">Sign up</Link>
-                </Button>
-              </>
-            )}
+            <Button asChild variant="outline">
+              <Link href="/auth/login">Login</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/auth/sign-up?role=donor">Sign up</Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -139,33 +149,36 @@ export default async function Home({
             re-engage eligible donors while supporting the official screening
             process.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href={user ? "/dashboard" : "/auth/sign-up?role=donor"}>
-                Sign up as donor
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="secondary">
-              <Link
-                href={
-                  user
-                    ? "/dashboard"
-                    : "/auth/sign-up?role=blood_bank_staff"
-                }
-              >
-                Sign up as blood bank
-              </Link>
-            </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex">
+              <Button asChild size="lg" className="rounded-r-none">
+                <Link href="/auth/sign-up?role=donor">Sign up as donor</Link>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="lg"
+                    variant="default"
+                    className="rounded-l-none border-l border-primary-foreground/30 px-3"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                    <span className="sr-only">Choose signup role</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth/sign-up?role=donor">Donor account</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth/sign-up?role=blood_bank_staff">
+                      Blood bank personnel account
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <Button asChild size="lg" variant="outline">
               <Link href="/centres">View donation centres</Link>
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <Button asChild size="sm" variant="outline">
-              <Link href="/donor">Open donor dashboard</Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/staff">Open blood bank dashboard</Link>
             </Button>
           </div>
 
@@ -216,6 +229,20 @@ export default async function Home({
                 eligibility decisions remain with qualified clinical teams.
               </AlertDescription>
             </Alert>
+            <div className="overflow-hidden rounded-lg border bg-background">
+              <Image
+                src="/images/clinical-safety-hospital.svg"
+                alt="Blood Bridge clinical safety coordination illustration"
+                width={1200}
+                height={700}
+                className="h-auto w-full"
+                priority
+              />
+              <p className="border-t px-3 py-2 text-xs text-muted-foreground">
+                Coordination support for hospital teams across donor screening,
+                approval, and donation scheduling.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </section>

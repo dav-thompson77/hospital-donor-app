@@ -1,4 +1,5 @@
 import { updateDonorProfileAction } from "@/app/actions/donor";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +8,15 @@ import { StatusBadge } from "@/components/status-badge";
 import { requireRole } from "@/lib/auth";
 import { BLOOD_TYPES } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { AlertTriangle } from "lucide-react";
 
-export default async function DonorProfilePage() {
+export default async function DonorProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+  const error = params.error;
   const { supabase, profile } = await requireRole(["donor", "admin"]);
   const { data: donorProfile } = await supabase
     .from("donor_profiles")
@@ -26,6 +34,13 @@ export default async function DonorProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Could not save profile</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
           <form action={updateDonorProfileAction} className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="full_name">Full name</Label>

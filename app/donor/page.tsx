@@ -17,7 +17,13 @@ const verificationLabels: Array<{ key: string; label: string }> = [
   { key: "medical_interview_completed", label: "Medical interview completed" },
 ];
 
-export default async function DonorDashboardPage() {
+export default async function DonorDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ profileUpdated?: string }>;
+}) {
+  const params = await searchParams;
+  const profileUpdated = params.profileUpdated === "1";
   const { supabase, profile } = await requireRole(["donor", "admin"]);
 
   const [donorProfileResult, verificationResult, appointmentsResult, alertsResult, responsesResult, donationsResult] =
@@ -67,6 +73,16 @@ export default async function DonorDashboardPage() {
   return (
     <>
       <RealtimeRefresher donorProfileId={profile.id} />
+
+      {profileUpdated ? (
+        <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertTitle>Profile updated</AlertTitle>
+          <AlertDescription>
+            Your donor profile was saved successfully.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-primary/15">

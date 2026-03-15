@@ -66,12 +66,8 @@ export async function GET(request: NextRequest) {
   try {
     const profile = await ensureProfileForUser(supabase, user);
     rolePath = profile.role ? getRoleHomePath(profile.role) : "/onboarding";
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to load profile role";
-    return NextResponse.redirect(
-      `${origin}/auth/error?error=${encodeURIComponent(message)}`,
-    );
+  } catch {
+    return NextResponse.redirect(`${origin}/onboarding`);
   }
 
   if (next !== "/dashboard") {

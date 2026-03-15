@@ -1,0 +1,24 @@
+<svg width="1200" height="700" viewBox="0 0 1200 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="700" fill="#F1F7FF"/>
+  <rect x="74" y="72" width="1052" height="556" rx="24" fill="white" stroke="#D2E3FB" stroke-width="4"/>
+  <rect x="130" y="126" width="430" height="360" rx="16" fill="#EAF3FF"/>
+  <rect x="154" y="152" width="382" height="72" rx="12" fill="#D8E9FF"/>
+  <rect x="154" y="244" width="382" height="20" rx="10" fill="#C7DDFF"/>
+  <rect x="154" y="278" width="260" height="20" rx="10" fill="#C7DDFF"/>
+  <rect x="154" y="322" width="382" height="20" rx="10" fill="#C7DDFF"/>
+  <rect x="154" y="356" width="216" height="20" rx="10" fill="#C7DDFF"/>
+  <rect x="640" y="126" width="430" height="502" rx="16" fill="#F3F9FF"/>
+  <rect x="672" y="164" width="366" height="200" rx="14" fill="#E1EEFF"/>
+  <rect x="672" y="388" width="366" height="24" rx="12" fill="#C9E0FF"/>
+  <rect x="672" y="426" width="300" height="24" rx="12" fill="#C9E0FF"/>
+  <rect x="672" y="464" width="366" height="24" rx="12" fill="#C9E0FF"/>
+  <rect x="672" y="502" width="260" height="24" rx="12" fill="#C9E0FF"/>
+  <circle cx="245" cy="566" r="38" fill="#1F6FEB"/>
+  <path d="M244.5 546V585" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <path d="M264 565.5H225" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="905" cy="566" r="38" fill="#E5484D"/>
+  <path d="M904.5 547V585" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <path d="M924 566H885" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <text x="602" y="86" text-anchor="middle" fill="#0E3A8A" font-family="Arial, sans-serif" font-size="28" font-weight="700">Clinical Safety Coordination</text>
+  <text x="602" y="118" text-anchor="middle" fill="#1E4B93" font-family="Arial, sans-serif" font-size="16">Hospital teams, donor screening, and appointment readiness</text>
+</svg>
