@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getBrowserAuthCallbackUrl } from "@/lib/site-url";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -27,6 +28,13 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingLink, setIsSendingLink] = useState(false);
   const router = useRouter();
+  const callbackUrlHost = (() => {
+    try {
+      return new URL(getBrowserAuthCallbackUrl()).host;
+    } catch {
+      return "your configured app URL";
+    }
+  })();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +72,7 @@ export function LoginForm({
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+          emailRedirectTo: getBrowserAuthCallbackUrl(),
         },
       });
       if (error) throw error;
@@ -148,6 +156,9 @@ export function LoginForm({
                 Sign up as blood bank
               </Link>
             </div>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Email sign-in links return to: <span className="font-medium">{callbackUrlHost}</span>
+            </p>
           </form>
         </CardContent>
       </Card>

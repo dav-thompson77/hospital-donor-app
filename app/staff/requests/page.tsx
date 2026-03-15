@@ -1,6 +1,9 @@
 import { createBloodRequestAction } from "@/app/actions/staff";
+import { AiSuggestionList } from "@/components/staff/ai-suggestion-list";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { requireRole } from "@/lib/auth";
 import { BLOOD_TYPES } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { Sparkles, Wand2 } from "lucide-react";
 import Link from "next/link";
 
 function centreNameFromJoin(
@@ -38,11 +42,22 @@ export default async function StaffBloodRequestsPage() {
 
   return (
     <div className="space-y-6">
+      <Alert className="border-primary/20 bg-accent/45">
+        <Wand2 className="h-4 w-4 text-primary" />
+        <AlertTitle>AI outreach assistant (demo-ready)</AlertTitle>
+        <AlertDescription>
+          Every request auto-generates three message variants: urgent outreach,
+          reminder, and follow-up confirmation. Copy any suggestion and send it
+          from the Alerts page.
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardHeader>
-          <CardTitle>Create blood request</CardTitle>
+          <CardTitle>Create blood request + generate outreach</CardTitle>
           <CardDescription>
-            Add request details and auto-generate outreach message suggestions for matching donors.
+            Add request details and the app will generate reusable outreach copy
+            tailored to urgency, blood type, and centre context.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -105,6 +120,7 @@ export default async function StaffBloodRequestsPage() {
               />
             </div>
             <Button type="submit" className="md:col-span-2">
+              <Sparkles className="h-4 w-4" />
               Create request + generate outreach copy
             </Button>
           </form>
@@ -140,15 +156,19 @@ export default async function StaffBloodRequestsPage() {
                 </p>
                 {request.note ? <p className="mb-3 text-sm">{request.note}</p> : null}
                 <div className="space-y-2 rounded-md bg-accent/50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    AI-assisted outreach suggestions
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      AI-assisted outreach suggestions
+                    </p>
+                    <Badge variant="outline" className="border-primary/30 text-primary">
+                      3 templates ready
+                    </Badge>
+                  </div>
                   {(request.ai_message_suggestions as string[] | null)?.length ? (
-                    <ul className="list-disc space-y-1 pl-5 text-sm">
-                      {(request.ai_message_suggestions as string[]).map((suggestion, index) => (
-                        <li key={`${request.id}-suggestion-${index}`}>{suggestion}</li>
-                      ))}
-                    </ul>
+                    <AiSuggestionList
+                      requestId={request.id}
+                      suggestions={request.ai_message_suggestions as string[]}
+                    />
                   ) : (
                     <p className="text-sm text-muted-foreground">No suggestions stored.</p>
                   )}

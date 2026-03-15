@@ -50,13 +50,15 @@ export function generateOutreachSuggestions(input: OutreachInput) {
   const note = input.customNote ? `Note from staff: ${input.customNote}` : "";
 
   return [
-    `Good day ${input.donorName}, ${base} ${statusLine(input.donorStatus)} ${lastDonationLine} Please reply in Blood Bridge if you are available.`,
-    `Hello ${input.donorName}, we are coordinating a ${
+    `URGENT OUTREACH: Good day ${input.donorName}, ${base} ${statusLine(
+      input.donorStatus,
+    )} ${lastDonationLine} Please reply in Blood Bridge if you are available.`,
+    `REMINDER MESSAGE: Hello ${input.donorName}, we are coordinating a ${
       input.urgency
     } request for ${input.bloodType ?? "blood donors"} at ${
       input.centreName
     } in Jamaica. ${statusLine(input.donorStatus)} ${note}`.trim(),
-    `Blood Bridge update: ${
+    `FOLLOW-UP CONFIRMATION: Blood Bridge update for ${
       input.bloodType ?? "donors"
     } needed at ${input.centreName}. Required by ${formatDate(
       input.requiredBy,

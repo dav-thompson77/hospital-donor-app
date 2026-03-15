@@ -74,6 +74,11 @@ It helps blood bank teams find, verify, schedule, and re-engage eligible donors 
   - urgency
   - donor approval status
   - last donation date
+- Produces three labeled templates per request:
+  - `URGENT OUTREACH`
+  - `REMINDER MESSAGE`
+  - `FOLLOW-UP CONFIRMATION`
+- Staff can copy generated messages directly from the requests page and open alerts flow.
 - Stored with blood requests in `ai_message_suggestions` (`jsonb`)
 - Architecture allows replacing with external LLM provider later
 
@@ -178,6 +183,7 @@ cp .env.example .env.local
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://znmzisdzzkifinjlylco.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_DAj5lxE9Td4QQBS6As_h_w_5riUAxc7
+NEXT_PUBLIC_SITE_URL=https://your-vercel-domain.vercel.app
 ```
 
 4. Apply SQL:
@@ -224,8 +230,12 @@ where email = 'admin-user@example.com';
 2. Set environment variables in Vercel project settings:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `NEXT_PUBLIC_SITE_URL` (your Vercel production URL)
 3. Deploy.
 4. Ensure the Supabase migration + seed SQL has been run in the connected Supabase project.
+5. In Supabase Auth settings, confirm Site URL + Redirect URLs include:
+   - `https://your-vercel-domain.vercel.app/auth/callback`
+   - `https://your-vercel-domain.vercel.app/dashboard`
 
 ---
 

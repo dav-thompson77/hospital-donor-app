@@ -40,12 +40,12 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <main className="min-h-screen bg-background">
-      <header className="border-b bg-card/70 backdrop-blur">
+      <header className="border-b bg-card">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
           <div>
             <Link
               href="/"
-              className="text-xs font-semibold uppercase tracking-wider text-primary/80"
+              className="text-xs font-semibold uppercase tracking-wider text-primary"
             >
               Blood Bridge
             </Link>
