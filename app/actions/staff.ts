@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { generateOutreachSuggestions } from "@/lib/ai/outreach";
+import { runAIMonitor } from "@/lib/ai/monitor";
 import { redirect } from "next/navigation";
-import type { AppointmentStatus, AppointmentType, DonorStatus, UrgencyLevel } from "@/lib/types";
+import { BLOOD_TYPES, type AppointmentStatus, type AppointmentType, type DonorStatus, type UrgencyLevel } from "@/lib/types";
 
 const APPOINTMENT_TYPES: AppointmentType[] = ["blood_typing", "screening", "donation"];
 const APPOINTMENT_STATUSES: AppointmentStatus[] = [
@@ -93,16 +94,31 @@ export async function createBloodRequestAction(formData: FormData) {
         customNote: note,
       });
 
-  await supabase.from("blood_requests").insert({
-    created_by_profile_id: profile.id,
-    blood_type_needed: bloodTypeNeeded,
-    urgency,
-    center_id: centreId,
-    required_by: requiredBy,
-    note: note || null,
-    ai_message_suggestions: suggestions,
-    status: "active",
-  });
+  const { data: createdRequest } = await supabase
+    .from("blood_requests")
+    .insert({
+      created_by_profile_id: profile.id,
+      blood_type_needed: bloodTypeNeeded,
+      urgency,
+      center_id: centreId,
+      required_by: requiredBy,
+      note: note || null,
+      ai_message_suggestions: suggestions,
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  if (createdRequest?.id && urgency === "critical") {
+    // Auto-run monitor when a new critical request is created.
+    await runAIMonitor(supabase, {
+      sentByProfileId: profile.id,
+      requestId: createdRequest.id,
+    });
+    revalidatePath("/staff/monitor");
+    revalidatePath("/staff/alerts");
+    revalidatePath("/donor/alerts");
+  }
 
   revalidatePath("/staff");
   revalidatePath("/staff/requests");
@@ -275,6 +291,37 @@ export async function updateDonorWorkflowAction(formData: FormData) {
 
   revalidatePath("/staff/donors");
   revalidatePath("/donor");
+}
+
+export async function updateDonorBloodTypeAction(formData: FormData) {
+  const { supabase } = await requireRole(["blood_bank_staff", "admin"]);
+
+  const donorProfileId = String(formData.get("donor_profile_id") ?? "").trim();
+  const bloodTypeValue = String(formData.get("blood_type") ?? "").trim();
+  const bloodType = bloodTypeValue === "" ? null : bloodTypeValue;
+
+  if (!donorProfileId) {
+    redirect("/staff/donors?error=Invalid%20donor%20selection");
+  }
+
+  if (bloodType && !BLOOD_TYPES.includes(bloodType as (typeof BLOOD_TYPES)[number])) {
+    redirect("/staff/donors?error=Invalid%20blood%20type");
+  }
+
+  const { error } = await supabase
+    .from("donor_profiles")
+    .update({ blood_type: bloodType })
+    .eq("profile_id", donorProfileId);
+
+  if (error) {
+    redirect(`/staff/donors?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/staff/donors");
+  revalidatePath("/staff/requests");
+  revalidatePath("/donor");
+  revalidatePath("/donor/profile");
+  redirect("/staff/donors?bloodTypeUpdated=1");
 }
 
 export async function sendAlertAction(formData: FormData) {

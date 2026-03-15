@@ -18,6 +18,7 @@ export default async function StaffLayout({
         { href: "/staff", label: "Dashboard" },
         { href: "/staff/donors", label: "Donors" },
         { href: "/staff/requests", label: "Blood Requests" },
+        { href: "/staff/monitor", label: "AI Monitor" },
         { href: "/staff/appointments", label: "Appointments" },
         { href: "/staff/alerts", label: "Alerts & Responses" },
         { href: "/centres", label: "Donation Centres" },

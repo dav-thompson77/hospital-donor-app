@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Profile, UserRole } from "@/lib/types";
+import { BLOOD_TYPES, type Profile, type UserRole } from "@/lib/types";
 
 const VALID_ROLES: UserRole[] = ["donor", "blood_bank_staff", "admin"];
 
@@ -11,6 +11,17 @@ function normalizeRole(value: unknown): UserRole {
     return value as UserRole;
   }
   return "donor";
+}
+
+function normalizeBloodType(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) {
+    return null;
+  }
+  return BLOOD_TYPES.includes(normalized as (typeof BLOOD_TYPES)[number]) ? normalized : null;
 }
 
 export async function ensureProfileForUser(
@@ -29,6 +40,7 @@ export async function ensureProfileForUser(
     user.user_metadata.phone.trim().length
       ? user.user_metadata.phone.trim()
       : null;
+  const donorBloodType = normalizeBloodType(user.user_metadata?.donor_blood_type);
   const staffIdNumber =
     typeof user.user_metadata?.staff_id_number === "string" &&
     user.user_metadata.staff_id_number.trim().length
@@ -56,13 +68,55 @@ export async function ensureProfileForUser(
   }
 
   if (existing) {
-    const existingRole = normalizeRole(existing.role);
+    let existingProfile = existing;
+    const existingRole = normalizeRole(existingProfile.role);
+
+    const profilePatch: Record<string, string | null> = {};
+    if (requestedRole === "donor" && donorPhone && donorPhone !== existingProfile.phone) {
+      profilePatch.phone = donorPhone;
+    }
+    if (requestedRole === "blood_bank_staff") {
+      if (staffIdNumber && staffIdNumber !== existingProfile.staff_id_number) {
+        profilePatch.staff_id_number = staffIdNumber;
+      }
+      if (staffFacility && staffFacility !== existingProfile.staff_facility) {
+        profilePatch.staff_facility = staffFacility;
+      }
+      if (staffWorkPhone && staffWorkPhone !== existingProfile.staff_work_phone) {
+        profilePatch.staff_work_phone = staffWorkPhone;
+      }
+    }
+
+    if (Object.keys(profilePatch).length) {
+      const { data: patchedProfile, error: patchError } = await supabase
+        .from("profiles")
+        .update(profilePatch)
+        .eq("id", existingProfile.id)
+        .select("*")
+        .single();
+
+      if (patchError || !patchedProfile) {
+        throw patchError ?? new Error("Could not update profile details");
+      }
+
+      existingProfile = patchedProfile;
+    }
+
+    if (requestedRole === "donor" && donorBloodType) {
+      await supabase.from("donor_profiles").upsert(
+        {
+          profile_id: existingProfile.id,
+          blood_type: donorBloodType,
+        },
+        { onConflict: "profile_id" },
+      );
+    }
 
     if (existingRole !== requestedRole && existingRole !== "admin") {
       const { data: updated, error: updateError } = await supabase
         .from("profiles")
         .update({ role: requestedRole })
-        .eq("id", existing.id)
+        .eq("id", existingProfile.id)
         .select("*")
         .single();
 
@@ -75,6 +129,7 @@ export async function ensureProfileForUser(
           {
             profile_id: updated.id,
             status: "pending_verification",
+            blood_type: donorBloodType,
           },
           { onConflict: "profile_id" },
         );
@@ -92,7 +147,7 @@ export async function ensureProfileForUser(
       return { ...updated, role: normalizeRole(updated.role) } as Profile;
     }
 
-    return { ...existing, role: existingRole } as Profile;
+    return { ...existingProfile, role: existingRole } as Profile;
   }
 
   const { data: inserted, error: insertError } = await supabase
@@ -120,6 +175,7 @@ export async function ensureProfileForUser(
       {
         profile_id: inserted.id,
         status: "pending_verification",
+        blood_type: donorBloodType,
       },
       { onConflict: "profile_id" },
     );
