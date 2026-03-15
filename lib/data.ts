@@ -1,10 +1,21 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { DonorStatus } from "@/lib/types";
 
 interface DonorFilterInput {
   bloodType?: string;
   status?: DonorStatus | "";
   parish?: string;
+}
+
+export interface LaunchUrgentRequest {
+  id: number;
+  blood_type_needed: string;
+  urgency: string;
+  required_by: string;
+  blood_centers:
+    | { name: string | null; parish: string | null }
+    | Array<{ name: string | null; parish: string | null }>
+    | null;
 }
 
 export async function getDonorDashboardData(
@@ -70,6 +81,35 @@ export async function getBloodCentres(supabase: SupabaseClient) {
     throw error;
   }
   return data ?? [];
+}
+
+export async function getPublicUrgentRequests(limit = 4): Promise<LaunchUrgentRequest[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) {
+    return [];
+  }
+
+  const publicClient = createSupabaseClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const { data, error } = await publicClient
+    .from("blood_requests")
+    .select("id, blood_type_needed, urgency, required_by, blood_centers(name, parish)")
+    .eq("status", "active")
+    .order("required_by", { ascending: true })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as LaunchUrgentRequest[];
 }
 
 export async function getStaffDashboardData(supabase: SupabaseClient) {

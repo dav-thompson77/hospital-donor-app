@@ -19,6 +19,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { StatusBadge } from "@/components/status-badge";
 import { AuthHomeRedirect } from "@/components/auth-home-redirect";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicUrgentRequests } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 import {
   BellRing,
@@ -67,7 +68,7 @@ export default async function Home({
     donorsCountResult,
     alertsCountResult,
     responsesCountResult,
-    urgentRequestsResult,
+    urgentRequests,
   ] = await Promise.all([
     supabase
       .from("blood_centers")
@@ -81,21 +82,13 @@ export default async function Home({
       .from("donor_alert_responses")
       .select("id", { head: true, count: "exact" })
       .neq("response_status", "pending"),
-    supabase
-      .from("blood_requests")
-      .select(
-        "id, blood_type_needed, urgency, required_by, blood_centers(name, parish)",
-      )
-      .eq("status", "active")
-      .order("required_by", { ascending: true })
-      .limit(4),
+    getPublicUrgentRequests(4),
   ]);
 
   const centreCount = centresCountResult.count ?? 0;
   const donorCount = donorsCountResult.count ?? 0;
   const alertCount = alertsCountResult.count ?? 0;
   const responseCount = responsesCountResult.count ?? 0;
-  const urgentRequests = urgentRequestsResult.data ?? [];
 
   return (
     <main className="min-h-screen bg-background">

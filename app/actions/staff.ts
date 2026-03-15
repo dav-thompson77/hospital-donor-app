@@ -202,6 +202,10 @@ export async function updateAppointmentStatusAction(formData: FormData) {
   }
 
   if (appointment.appointment_type === "donation") {
+    if (appointment.status === "completed" && status !== "completed") {
+      await supabase.from("donation_history").delete().eq("appointment_id", appointment.id);
+    }
+
     const { data: latestCompletedDonation } = await supabase
       .from("appointments")
       .select("scheduled_at")

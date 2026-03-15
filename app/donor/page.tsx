@@ -20,6 +20,18 @@ function addDays(value: string, days: number) {
   return date.toISOString();
 }
 
+function centreNameFromJoin(
+  centre: { name: string } | Array<{ name: string }> | null | undefined,
+) {
+  if (!centre) {
+    return "Unknown centre";
+  }
+  if (Array.isArray(centre)) {
+    return centre[0]?.name ?? "Unknown centre";
+  }
+  return centre.name ?? "Unknown centre";
+}
+
 const verificationLabels: Array<{ key: string; label: string }> = [
   { key: "registered", label: "Registered" },
   { key: "id_verified", label: "ID verified" },
@@ -44,6 +56,7 @@ export default async function DonorDashboardPage({
     alertsResult,
     responsesResult,
     donationsResult,
+    recentDonationsResult,
     latestCompletedDonationResult,
   ] =
     await Promise.all([
@@ -74,6 +87,12 @@ export default async function DonorDashboardPage({
         .select("id", { count: "exact", head: true })
         .eq("donor_profile_id", profile.id),
       supabase
+        .from("donation_history")
+        .select("id, donated_at, blood_type, units, blood_centers(name)")
+        .eq("donor_profile_id", profile.id)
+        .order("donated_at", { ascending: false })
+        .limit(3),
+      supabase
         .from("appointments")
         .select("scheduled_at")
         .eq("donor_profile_id", profile.id)
@@ -90,6 +109,7 @@ export default async function DonorDashboardPage({
   const alerts = alertsResult.data ?? [];
   const responses = responsesResult.data ?? [];
   const totalDonations = donationsResult.count ?? 0;
+  const recentDonations = recentDonationsResult.data ?? [];
   const latestCompletedDonationDate = latestCompletedDonationResult.data?.scheduled_at ?? null;
   const nextEligibleDonationDate = latestCompletedDonationDate
     ? addDays(latestCompletedDonationDate, DONATION_ELIGIBILITY_WINDOW_DAYS)
@@ -225,6 +245,38 @@ export default async function DonorDashboardPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-primary/15">
+        <CardHeader>
+          <CardTitle>Recent donation history</CardTitle>
+          <CardDescription>Most recent completed donation records.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {recentDonations.length ? (
+            recentDonations.map((donation) => (
+              <div key={donation.id} className="rounded-md border p-3">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">
+                    {donation.blood_type} • {donation.units} unit
+                    {Number(donation.units) === 1 ? "" : "s"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {centreNameFromJoin(donation.blood_centers)}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Completed {formatDateTime(donation.donated_at)}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No donation records yet.</p>
+          )}
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/donor/donations">Open full donation history</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card className="border-primary/15">
         <CardHeader>
