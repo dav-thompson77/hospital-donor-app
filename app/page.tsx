@@ -257,15 +257,15 @@ export default async function Home({
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="landing-shell min-h-screen bg-background">
       <AuthHomeRedirect />
-      <section className="border-b bg-card">
+      <section className="motion-fade-up border-b bg-card">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-6">
           <Link
             href={user ? "/?from=dashboard" : "/"}
             className="flex items-center gap-2 text-lg font-semibold"
           >
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <span className="float-slow inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Droplets className="h-4 w-4" />
             </span>
             Blood Bridge
@@ -304,18 +304,21 @@ export default async function Home({
       <section className="border-b">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 md:grid-cols-[1.2fr_0.8fr] md:px-6 md:py-14">
           <div className="space-y-6">
-            <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">
+            <Badge
+              variant="outline"
+              className="motion-fade-up motion-delay-1 border-primary/30 bg-primary/5 text-primary"
+            >
               National donor coordination platform
             </Badge>
-            <h1 className="text-4xl font-bold leading-tight md:text-5xl">
+            <h1 className="motion-fade-up motion-delay-2 text-4xl font-bold leading-tight md:text-5xl">
               Help blood banks find and re-engage eligible donors in real time.
             </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-foreground/80">
+            <p className="motion-fade-up motion-delay-3 max-w-xl text-lg leading-relaxed text-foreground/80">
               Blood Bridge helps blood services register, verify, schedule, and
               re-engage donors while supporting Jamaica&apos;s official clinical
               screening process.
             </p>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="motion-fade-up motion-delay-4 flex flex-wrap items-center gap-3">
               <div className="inline-flex">
                 <Button asChild size="lg" className="rounded-r-none">
                   <Link href="/auth/sign-up?role=donor">Register as donor</Link>
@@ -351,7 +354,7 @@ export default async function Home({
               </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Card className="border-primary/15 shadow-none">
+              <Card className="motion-fade-up motion-delay-4 hover-pop border-primary/15 shadow-none">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base text-primary">For Donors</CardTitle>
                 </CardHeader>
@@ -360,7 +363,7 @@ export default async function Home({
                   respond to blood need alerts.
                 </CardContent>
               </Card>
-              <Card className="border-primary/15 shadow-none">
+              <Card className="motion-fade-up motion-delay-5 hover-pop border-primary/15 shadow-none">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base text-primary">
                     For Blood Bank Personnel
@@ -374,7 +377,7 @@ export default async function Home({
             </div>
           </div>
 
-          <Card className="border-primary/20 bg-card shadow-sm">
+          <Card className="motion-fade-up motion-delay-3 hover-pop border-primary/20 bg-card shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Clock3 className="h-5 w-5 text-primary" />
@@ -394,7 +397,7 @@ export default async function Home({
                   return (
                     <div
                       key={request.id}
-                      className="rounded-lg border border-red-200 bg-red-50/80 p-3 dark:border-red-800 dark:bg-red-950/25"
+                      className="hover-pop rounded-lg border border-red-200 bg-red-50/80 p-3 dark:border-red-800 dark:bg-red-950/25"
                     >
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-red-900 dark:text-red-100">
@@ -415,7 +418,7 @@ export default async function Home({
                   No active urgent requests right now.
                 </p>
               )}
-              <div className="rounded-md border bg-accent/35 p-3 text-xs text-muted-foreground">
+              <div className="live-badge-pulse rounded-md border bg-accent/35 p-3 text-xs text-muted-foreground">
                 <span className="font-semibold text-foreground">{displayAlertCount}</span>{" "}
                 donors alerted •{" "}
                 <span className="font-semibold text-foreground">{displayResponseCount}</span>{" "}
@@ -428,7 +431,7 @@ export default async function Home({
 
       <section className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
         <div className="grid gap-3 rounded-xl border bg-card p-3 md:grid-cols-4">
-          <Card className="border-0 bg-transparent shadow-none">
+          <Card className="motion-fade-up motion-delay-1 hover-pop border-0 bg-transparent shadow-none">
             <CardContent className="p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 Coverage
@@ -436,7 +439,7 @@ export default async function Home({
               <p className="mt-1 text-xl font-semibold">{displayCentreCount} blood centres</p>
             </CardContent>
           </Card>
-          <Card className="border-0 bg-transparent shadow-none">
+          <Card className="motion-fade-up motion-delay-2 hover-pop border-0 bg-transparent shadow-none">
             <CardContent className="p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 Donor data
@@ -444,7 +447,7 @@ export default async function Home({
               <p className="mt-1 text-xl font-semibold">{displayDonorCount} donor profiles</p>
             </CardContent>
           </Card>
-          <Card className="border-0 bg-transparent shadow-none">
+          <Card className="motion-fade-up motion-delay-3 hover-pop border-0 bg-transparent shadow-none">
             <CardContent className="p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 Communication
@@ -452,7 +455,7 @@ export default async function Home({
               <p className="mt-1 text-xl font-semibold">{displayAlertCount} realtime alerts</p>
             </CardContent>
           </Card>
-          <Card className="border-0 bg-transparent shadow-none">
+          <Card className="motion-fade-up motion-delay-4 hover-pop border-0 bg-transparent shadow-none">
             <CardContent className="p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 Coordination
@@ -464,7 +467,7 @@ export default async function Home({
       </section>
 
       <section className="mx-auto w-full max-w-6xl px-4 pb-8 md:px-6">
-        <Card className="border-primary/20">
+        <Card className="motion-fade-up hover-pop border-primary/20">
           <CardHeader>
             <CardTitle>Live demo feed</CardTitle>
             <CardDescription>
@@ -474,7 +477,7 @@ export default async function Home({
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2">
               {liveFeed.map((item) => (
-                <div key={item.id} className="rounded-lg border p-3">
+                <div key={item.id} className="hover-pop rounded-lg border p-3">
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold">{item.title}</p>
                     <Badge
@@ -497,7 +500,7 @@ export default async function Home({
       </section>
 
       <section className="mx-auto w-full max-w-6xl px-4 pb-8 md:px-6">
-        <Card className="border-primary/20">
+        <Card className="motion-fade-up hover-pop border-primary/20">
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
               <CardTitle className="text-2xl">How Blood Bridge works</CardTitle>
@@ -511,14 +514,14 @@ export default async function Home({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-lg border p-4">
+              <div className="hover-pop rounded-lg border p-4">
                 <p className="mb-2 text-sm font-semibold text-primary">1. Register + verify</p>
                 <p className="text-sm text-muted-foreground">
                   Donors create profiles and progress through ID checks, medical
                   screening, and interview stages.
                 </p>
               </div>
-              <div className="rounded-lg border p-4">
+              <div className="hover-pop rounded-lg border p-4">
                 <p className="mb-2 text-sm font-semibold text-primary">
                   2. Match + engage
                 </p>
@@ -527,7 +530,7 @@ export default async function Home({
                   contact matching eligible donors instantly.
                 </p>
               </div>
-              <div className="rounded-lg border p-4">
+              <div className="hover-pop rounded-lg border p-4">
                 <p className="mb-2 text-sm font-semibold text-primary">
                   3. Schedule + respond
                 </p>
@@ -565,7 +568,7 @@ export default async function Home({
       </section>
 
       <section className="mx-auto grid w-full max-w-6xl gap-4 px-4 pb-16 md:grid-cols-3 md:px-6">
-        <Card>
+        <Card className="motion-fade-up motion-delay-1 hover-pop">
           <CardHeader className="pb-3">
             <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
               <HeartPulse className="h-4 w-4" />
@@ -581,7 +584,7 @@ export default async function Home({
             </Badge>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="motion-fade-up motion-delay-2 hover-pop">
           <CardHeader className="pb-3">
             <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Users className="h-4 w-4" />
@@ -597,7 +600,7 @@ export default async function Home({
             </Badge>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="motion-fade-up motion-delay-3 hover-pop">
           <CardHeader className="pb-3">
             <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Sparkles className="h-4 w-4" />
